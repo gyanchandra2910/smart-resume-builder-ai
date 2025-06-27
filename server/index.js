@@ -9,6 +9,7 @@ const app = express();
 // Import routes
 const authRoutes = require('./routes/auth');
 const resumeRoutes = require('./routes/resume');
+const aiRoutes = require('./routes/ai');
 
 // Middleware
 app.use(cors());
@@ -21,6 +22,7 @@ app.use(express.static(path.join(__dirname, '../client')));
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/resume', resumeRoutes);
+app.use('/api/resume', aiRoutes);
 
 // Serve specific HTML files
 app.get('/login.html', (req, res) => {

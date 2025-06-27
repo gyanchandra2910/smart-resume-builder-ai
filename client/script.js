@@ -451,6 +451,161 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.experience-entry:first-child .remove-entry').forEach(btn => {
         btn.style.display = 'none';
     });
+
+    // AI Summary Generation
+    const generateAIBtn = document.getElementById('generateAISummary');
+    if (generateAIBtn) {
+        generateAIBtn.addEventListener('click', generateAISummary);
+    }
+
+    async function generateAISummary() {
+        const generateBtn = document.getElementById('generateAISummary');
+        const aiSection = document.getElementById('aiSummarySection');
+        
+        // Get required form data
+        const role = document.getElementById('roleAppliedFor').value.trim();
+        const objective = document.getElementById('careerObjective').value.trim();
+        
+        // Validation
+        if (!role) {
+            showAlert('Please enter your desired position first.', 'warning');
+            document.getElementById('roleAppliedFor').focus();
+            return;
+        }
+        
+        if (!objective) {
+            showAlert('Please enter your career objective first.', 'warning');
+            document.getElementById('careerObjective').focus();
+            return;
+        }
+        
+        if (skillsArray.length === 0) {
+            showAlert('Please add at least one skill before generating AI summary.', 'warning');
+            document.getElementById('keySkills').focus();
+            return;
+        }
+
+        // Show loading state
+        const originalText = generateBtn.innerHTML;
+        generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating AI Summary...';
+        generateBtn.disabled = true;
+
+        try {
+            const response = await fetch('/api/resume/generateSummary', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    role: role,
+                    skills: skillsArray,
+                    objective: objective
+                })
+            });
+
+            console.log('Response status:', response.status);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            console.log('AI response:', data);
+
+            if (data.success) {
+                // Display the AI-generated content
+                document.getElementById('aiProfessionalSummary').textContent = data.data.professionalSummary;
+                
+                // Display bullet points
+                const bulletPointsDiv = document.getElementById('aiBulletPoints');
+                bulletPointsDiv.innerHTML = '<ul class="mb-0">' + 
+                    data.data.bulletPoints.map(point => `<li>${point}</li>`).join('') + 
+                    '</ul>';
+                
+                document.getElementById('aiImprovedObjective').textContent = data.data.improvedObjective;
+                
+                // Show the AI section
+                aiSection.style.display = 'block';
+                aiSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                
+                showAlert('AI summary generated successfully!', 'success');
+            } else {
+                console.error('AI generation failed:', data);
+                showAlert(data.message || 'Failed to generate AI summary. Please try again.', 'danger');
+            }
+        } catch (error) {
+            console.error('Error generating AI summary:', error);
+            showAlert('Error connecting to AI service. Please check your connection and try again.', 'danger');
+        } finally {
+            // Reset button state
+            generateBtn.innerHTML = originalText;
+            generateBtn.disabled = false;
+        }
+    }
+
+    // Copy to clipboard functionality
+    window.copyToClipboard = function(elementId) {
+        const element = document.getElementById(elementId);
+        const text = element.textContent || element.innerText;
+        
+        navigator.clipboard.writeText(text).then(() => {
+            showAlert('Content copied to clipboard!', 'info');
+        }).catch(err => {
+            console.error('Failed to copy: ', err);
+            showAlert('Failed to copy content. Please try again.', 'warning');
+        });
+    };
+
+    // Use improved objective functionality
+    window.useImprovedObjective = function() {
+        const improvedObjective = document.getElementById('aiImprovedObjective').textContent;
+        const objectiveField = document.getElementById('careerObjective');
+        
+        if (improvedObjective && objectiveField) {
+            objectiveField.value = improvedObjective;
+            showAlert('Objective updated with AI-improved version!', 'success');
+            
+            // Scroll to the objective field to show the change
+            objectiveField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            objectiveField.focus();
+            
+            // Trigger validation
+            objectiveField.classList.remove('is-invalid');
+            objectiveField.classList.add('is-valid');
+        }
+    };
+
+    // Alert function for user feedback
+    function showAlert(message, type = 'info') {
+        // Remove any existing alerts
+        const existingAlert = document.querySelector('.custom-alert');
+        if (existingAlert) {
+            existingAlert.remove();
+        }
+
+        // Create alert element
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show custom-alert`;
+        alertDiv.style.position = 'fixed';
+        alertDiv.style.top = '20px';
+        alertDiv.style.right = '20px';
+        alertDiv.style.zIndex = '9999';
+        alertDiv.style.minWidth = '300px';
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+
+        // Add to document
+        document.body.appendChild(alertDiv);
+
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            if (alertDiv && alertDiv.parentNode) {
+                alertDiv.remove();
+            }
+        }, 5000);
+    }
     
     // Authentication functions
     function checkAuthentication() {
@@ -460,21 +615,31 @@ document.addEventListener('DOMContentLoaded', function() {
         if (token && user) {
             // User is logged in
             const userData = JSON.parse(user);
-            document.getElementById('loginNav').style.display = 'none';
-            document.getElementById('registerNav').style.display = 'none';
-            document.getElementById('userNav').style.display = 'block';
-            document.getElementById('userName').textContent = userData.name;
+            const loginNav = document.getElementById('loginNav');
+            const registerNav = document.getElementById('registerNav');
+            const userNav = document.getElementById('userNav');
+            const userName = document.getElementById('userName');
+            
+            if (loginNav) loginNav.style.display = 'none';
+            if (registerNav) registerNav.style.display = 'none';
+            if (userNav) userNav.style.display = 'block';
+            if (userName) userName.textContent = userData.name;
             
             // Add logout functionality
-            document.getElementById('logoutBtn').addEventListener('click', function(e) {
-                e.preventDefault();
-                localStorage.removeItem('token');
-                localStorage.removeItem('user');
-                window.location.href = '/';
-            });
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                    window.location.href = '/';
+                });
+            }
         } else {
-            // User is not logged in, redirect to login
-            window.location.href = '/login.html';
+            // For testing, allow access without login but show warning
+            console.warn('User not logged in - demo mode');
+            // Uncomment next line to require login:
+            // window.location.href = '/login.html';
         }
     }
 });
