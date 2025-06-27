@@ -1,0 +1,26 @@
+{
+  "name": "smart-resume-builder-ai",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gyanchandra2910/smart-resume-builder-ai.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/gyanchandra2910/smart-resume-builder-ai/issues"
+  },
+  "homepage": "https://github.com/gyanchandra2910/smart-resume-builder-ai#readme",
+  "description": "",
+  "dependencies": {
+    "dotenv": "^16.6.0",
+    "express": "^5.1.0",
+    "mongoose": "^8.16.1"
+  }
+}
