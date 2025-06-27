@@ -4,8 +4,14 @@ require('dotenv').config();
 
 const app = express();
 
+// Import routes
+const authRoutes = require('./routes/auth');
+
 // Middleware
 app.use(express.json());
+
+// Routes
+app.use('/api/auth', authRoutes);
 
 // MongoDB connection
 mongoose.connect(process.env.MONGODB_URI, {
