@@ -1,5 +1,8 @@
 // Resume Form JavaScript
 document.addEventListener('DOMContentLoaded', function() {
+    // Check authentication
+    checkAuthentication();
+    
     const form = document.getElementById('resumeForm');
     const skillsInput = document.getElementById('keySkills');
     const skillsContainer = document.getElementById('skillsContainer');
@@ -336,24 +339,100 @@ document.addEventListener('DOMContentLoaded', function() {
             const formData = new FormData(form);
             const resumeData = {};
 
-            // Process form data
+            // Process basic form data
             for (let [key, value] of formData.entries()) {
-                resumeData[key] = value;
+                if (!key.includes('[')) {
+                    resumeData[key] = value;
+                }
             }
 
-            // Add skills array
+            // Process nested form data
+            const education = {};
+            const experience = {};
+            const certifications = {};
+            const projects = {};
+
+            for (let [key, value] of formData.entries()) {
+                if (key.includes('education[')) {
+                    const match = key.match(/education\[(\d+)\]\[(\w+)\]/);
+                    if (match) {
+                        const index = match[1];
+                        const field = match[2];
+                        if (!education[index]) education[index] = {};
+                        education[index][field] = value;
+                    }
+                } else if (key.includes('experience[')) {
+                    const match = key.match(/experience\[(\d+)\]\[(\w+)\]/);
+                    if (match) {
+                        const index = match[1];
+                        const field = match[2];
+                        if (!experience[index]) experience[index] = {};
+                        experience[index][field] = value;
+                    }
+                } else if (key.includes('certifications[')) {
+                    const match = key.match(/certifications\[(\d+)\]\[(\w+)\]/);
+                    if (match) {
+                        const index = match[1];
+                        const field = match[2];
+                        if (!certifications[index]) certifications[index] = {};
+                        certifications[index][field] = value;
+                    }
+                } else if (key.includes('projects[')) {
+                    const match = key.match(/projects\[(\d+)\]\[(\w+)\]/);
+                    if (match) {
+                        const index = match[1];
+                        const field = match[2];
+                        if (!projects[index]) projects[index] = {};
+                        projects[index][field] = value;
+                    }
+                }
+            }
+
+            // Add processed data to resumeData
+            resumeData.education = education;
+            resumeData.experience = experience;
+            resumeData.certifications = certifications;
+            resumeData.projects = projects;
             resumeData.skills = skillsArray;
 
-            // Simulate API call (replace with actual API endpoint)
-            setTimeout(() => {
-                console.log('Resume Data:', resumeData);
-                alert('Resume data collected successfully! Check console for details.');
-                
+            // Send data to API
+            console.log('Sending resume data:', resumeData);
+            
+            fetch('/api/resume/input', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(resumeData)
+            })
+            .then(response => {
+                console.log('Response status:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log('Response data:', data);
+                if (data.success) {
+                    alert('Resume saved successfully! Resume ID: ' + data.data.id);
+                    console.log('Resume saved:', data);
+                    // Optionally redirect or reset form
+                    // form.reset();
+                    // skillsArray = [];
+                    // renderSkills();
+                } else {
+                    alert('Error saving resume: ' + data.message);
+                    console.error('Error:', data);
+                }
+            })
+            .catch(error => {
+                console.error('Network error:', error);
+                alert('Network error occurred. Please try again.');
+            })
+            .finally(() => {
                 // Reset loading state
                 submitBtn.classList.remove('loading');
                 submitBtn.innerHTML = originalText;
                 submitBtn.disabled = false;
-            }, 2000);
+            });
 
         } else {
             // Scroll to first error
@@ -372,4 +451,30 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.experience-entry:first-child .remove-entry').forEach(btn => {
         btn.style.display = 'none';
     });
+    
+    // Authentication functions
+    function checkAuthentication() {
+        const token = localStorage.getItem('token');
+        const user = localStorage.getItem('user');
+        
+        if (token && user) {
+            // User is logged in
+            const userData = JSON.parse(user);
+            document.getElementById('loginNav').style.display = 'none';
+            document.getElementById('registerNav').style.display = 'none';
+            document.getElementById('userNav').style.display = 'block';
+            document.getElementById('userName').textContent = userData.name;
+            
+            // Add logout functionality
+            document.getElementById('logoutBtn').addEventListener('click', function(e) {
+                e.preventDefault();
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                window.location.href = '/';
+            });
+        } else {
+            // User is not logged in, redirect to login
+            window.location.href = '/login.html';
+        }
+    }
 });

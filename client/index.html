@@ -3,256 +3,123 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Resume Builder</title>
+    <title>Smart Resume Builder AI</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container-fluid">
-        <div class="row">
-            <div class="col-12">
-                <div class="card shadow-lg">
-                    <div class="card-header bg-primary text-white text-center">
-                        <h2><i class="fas fa-file-alt me-2"></i>Smart Resume Builder</h2>
-                        <p class="mb-0">Create your professional resume with ease</p>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-file-alt me-2"></i>Smart Resume Builder AI
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/resume-builder.html">Build Resume</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/login.html">Login</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/register.html">Register</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="hero-section">
+        <div class="container">
+            <div class="row align-items-center min-vh-100">
+                <div class="col-lg-6">
+                    <h1 class="display-4 fw-bold text-white mb-4">
+                        Create Professional Resumes with AI
+                    </h1>
+                    <p class="lead text-white-50 mb-4">
+                        Build stunning, professional resumes in minutes with our intelligent resume builder. 
+                        Choose from modern templates and get hired faster.
+                    </p>
+                    <div class="d-flex gap-3">
+                        <a href="/resume-builder.html" class="btn btn-light btn-lg px-4">
+                            <i class="fas fa-plus me-2"></i>Create Resume
+                        </a>
+                        <a href="/login.html" class="btn btn-outline-light btn-lg px-4">
+                            <i class="fas fa-sign-in-alt me-2"></i>Login
+                        </a>
                     </div>
-                    <div class="card-body">
-                        <form id="resumeForm" novalidate>
-                            <!-- Personal Information Section -->
-                            <div class="row mb-4">
-                                <div class="col-12">
-                                    <h4 class="section-title"><i class="fas fa-user me-2"></i>Personal Information</h4>
-                                </div>
-                            </div>
-
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label for="fullName" class="form-label">Full Name <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="fullName" name="fullName" required>
-                                    <div class="invalid-feedback">Please provide your full name.</div>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="email" class="form-label">Email Address <span class="text-danger">*</span></label>
-                                    <input type="email" class="form-control" id="email" name="email" required>
-                                    <div class="invalid-feedback">Please provide a valid email address.</div>
-                                </div>
-                            </div>
-
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label for="phone" class="form-label">Phone Number <span class="text-danger">*</span></label>
-                                    <input type="tel" class="form-control" id="phone" name="phone" required>
-                                    <div class="invalid-feedback">Please provide your phone number.</div>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="address" class="form-label">Address</label>
-                                    <input type="text" class="form-control" id="address" name="address">
-                                </div>
-                            </div>
-
-                            <div class="row mb-4">
-                                <div class="col-md-4">
-                                    <label for="linkedin" class="form-label">LinkedIn Profile</label>
-                                    <input type="url" class="form-control" id="linkedin" name="linkedin" placeholder="https://linkedin.com/in/yourprofile">
-                                    <div class="invalid-feedback">Please provide a valid LinkedIn URL.</div>
-                                </div>
-                                <div class="col-md-4">
-                                    <label for="github" class="form-label">GitHub Profile</label>
-                                    <input type="url" class="form-control" id="github" name="github" placeholder="https://github.com/yourusername">
-                                    <div class="invalid-feedback">Please provide a valid GitHub URL.</div>
-                                </div>
-                                <div class="col-md-4">
-                                    <label for="portfolio" class="form-label">Portfolio Website</label>
-                                    <input type="url" class="form-control" id="portfolio" name="portfolio" placeholder="https://yourportfolio.com">
-                                    <div class="invalid-feedback">Please provide a valid portfolio URL.</div>
-                                </div>
-                            </div>
-
-                            <!-- Role and Objective Section -->
-                            <div class="row mb-4">
-                                <div class="col-12">
-                                    <h4 class="section-title"><i class="fas fa-briefcase me-2"></i>Role Information</h4>
-                                </div>
-                            </div>
-
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label for="roleAppliedFor" class="form-label">Role Applied For <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="roleAppliedFor" name="roleAppliedFor" required>
-                                    <div class="invalid-feedback">Please specify the role you're applying for.</div>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="keySkills" class="form-label">Key Skills <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="keySkills" name="keySkills" placeholder="Type and press Enter to add skills" required>
-                                    <div class="skills-container mt-2" id="skillsContainer"></div>
-                                    <div class="invalid-feedback">Please add at least one skill.</div>
-                                </div>
-                            </div>
-
-                            <div class="row mb-4">
-                                <div class="col-12">
-                                    <label for="careerObjective" class="form-label">Career Objective <span class="text-danger">*</span></label>
-                                    <textarea class="form-control" id="careerObjective" name="careerObjective" rows="4" required></textarea>
-                                    <div class="invalid-feedback">Please provide your career objective.</div>
-                                </div>
-                            </div>
-
-                            <!-- Education Section -->
-                            <div class="row mb-4">
-                                <div class="col-12">
-                                    <h4 class="section-title"><i class="fas fa-graduation-cap me-2"></i>Education</h4>
-                                </div>
-                            </div>
-
-                            <div id="educationContainer">
-                                <div class="education-entry border p-3 mb-3 rounded">
-                                    <div class="row">
-                                        <div class="col-md-4">
-                                            <label class="form-label">Degree <span class="text-danger">*</span></label>
-                                            <input type="text" class="form-control" name="education[0][degree]" required>
-                                            <div class="invalid-feedback">Please provide your degree.</div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <label class="form-label">College/University <span class="text-danger">*</span></label>
-                                            <input type="text" class="form-control" name="education[0][college]" required>
-                                            <div class="invalid-feedback">Please provide your college/university.</div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <label class="form-label">Year <span class="text-danger">*</span></label>
-                                            <input type="number" class="form-control" name="education[0][year]" min="1950" max="2030" required>
-                                            <div class="invalid-feedback">Please provide a valid year.</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <button type="button" class="btn btn-outline-primary mb-4" onclick="addEducationEntry()">
-                                <i class="fas fa-plus me-1"></i>Add Another Education
-                            </button>
-
-                            <!-- Experience Section -->
-                            <div class="row mb-4">
-                                <div class="col-12">
-                                    <h4 class="section-title"><i class="fas fa-building me-2"></i>Work Experience</h4>
-                                </div>
-                            </div>
-
-                            <div id="experienceContainer">
-                                <div class="experience-entry border p-3 mb-3 rounded">
-                                    <div class="row mb-3">
-                                        <div class="col-md-6">
-                                            <label class="form-label">Company <span class="text-danger">*</span></label>
-                                            <input type="text" class="form-control" name="experience[0][company]" required>
-                                            <div class="invalid-feedback">Please provide the company name.</div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label">Role <span class="text-danger">*</span></label>
-                                            <input type="text" class="form-control" name="experience[0][role]" required>
-                                            <div class="invalid-feedback">Please provide your role.</div>
-                                        </div>
-                                    </div>
-                                    <div class="row mb-3">
-                                        <div class="col-md-6">
-                                            <label class="form-label">Duration <span class="text-danger">*</span></label>
-                                            <input type="text" class="form-control" name="experience[0][duration]" placeholder="e.g., Jan 2020 - Dec 2022" required>
-                                            <div class="invalid-feedback">Please provide the duration.</div>
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-12">
-                                            <label class="form-label">Description <span class="text-danger">*</span></label>
-                                            <textarea class="form-control" name="experience[0][description]" rows="3" required></textarea>
-                                            <div class="invalid-feedback">Please provide a description of your role.</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <button type="button" class="btn btn-outline-primary mb-4" onclick="addExperienceEntry()">
-                                <i class="fas fa-plus me-1"></i>Add Another Experience
-                            </button>
-
-                            <!-- Certifications Section -->
-                            <div class="row mb-4">
-                                <div class="col-12">
-                                    <h4 class="section-title"><i class="fas fa-certificate me-2"></i>Certifications</h4>
-                                </div>
-                            </div>
-
-                            <div id="certificationsContainer">
-                                <div class="certification-entry border p-3 mb-3 rounded">
-                                    <div class="row">
-                                        <div class="col-md-4">
-                                            <label class="form-label">Certification Name</label>
-                                            <input type="text" class="form-control" name="certifications[0][name]">
-                                        </div>
-                                        <div class="col-md-4">
-                                            <label class="form-label">Issuer</label>
-                                            <input type="text" class="form-control" name="certifications[0][issuer]">
-                                        </div>
-                                        <div class="col-md-4">
-                                            <label class="form-label">Date</label>
-                                            <input type="month" class="form-control" name="certifications[0][date]">
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <button type="button" class="btn btn-outline-primary mb-4" onclick="addCertificationEntry()">
-                                <i class="fas fa-plus me-1"></i>Add Another Certification
-                            </button>
-
-                            <!-- Projects Section -->
-                            <div class="row mb-4">
-                                <div class="col-12">
-                                    <h4 class="section-title"><i class="fas fa-code me-2"></i>Projects</h4>
-                                </div>
-                            </div>
-
-                            <div id="projectsContainer">
-                                <div class="project-entry border p-3 mb-3 rounded">
-                                    <div class="row mb-3">
-                                        <div class="col-md-6">
-                                            <label class="form-label">Project Title</label>
-                                            <input type="text" class="form-control" name="projects[0][title]">
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label">Tech Stack</label>
-                                            <input type="text" class="form-control" name="projects[0][techStack]" placeholder="e.g., React, Node.js, MongoDB">
-                                        </div>
-                                    </div>
-                                    <div class="row mb-3">
-                                        <div class="col-md-6">
-                                            <label class="form-label">GitHub Link</label>
-                                            <input type="url" class="form-control" name="projects[0][githubLink]" placeholder="https://github.com/yourusername/project">
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-12">
-                                            <label class="form-label">Description</label>
-                                            <textarea class="form-control" name="projects[0][description]" rows="3"></textarea>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <button type="button" class="btn btn-outline-primary mb-4" onclick="addProjectEntry()">
-                                <i class="fas fa-plus me-1"></i>Add Another Project
-                            </button>
-
-                            <!-- Submit Button -->
-                            <div class="row">
-                                <div class="col-12 text-center">
-                                    <button type="submit" class="btn btn-primary btn-lg px-5">
-                                        <i class="fas fa-file-pdf me-2"></i>Generate Resume
-                                    </button>
-                                </div>
-                            </div>
-                        </form>
+                </div>
+                <div class="col-lg-6">
+                    <div class="text-center">
+                        <i class="fas fa-file-pdf text-white opacity-25" style="font-size: 15rem;"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
+    <div class="features-section py-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-12 text-center mb-5">
+                    <h2 class="display-5 fw-bold">Why Choose Our Resume Builder?</h2>
+                    <p class="lead text-muted">Everything you need to create the perfect resume</p>
+                </div>
+            </div>
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="feature-card text-center">
+                        <div class="feature-icon">
+                            <i class="fas fa-magic"></i>
+                        </div>
+                        <h4>AI-Powered</h4>
+                        <p class="text-muted">Smart suggestions and formatting to make your resume stand out.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="feature-card text-center">
+                        <div class="feature-icon">
+                            <i class="fas fa-mobile-alt"></i>
+                        </div>
+                        <h4>Mobile Responsive</h4>
+                        <p class="text-muted">Create and edit your resume on any device, anywhere.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="feature-card text-center">
+                        <div class="feature-icon">
+                            <i class="fas fa-download"></i>
+                        </div>
+                        <h4>Download PDF</h4>
+                        <p class="text-muted">Export your resume as a professional PDF document.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-dark text-white py-4">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <p>&copy; 2025 Smart Resume Builder AI. All rights reserved.</p>
+                </div>
+                <div class="col-md-6 text-end">
+                    <a href="#" class="text-white me-3"><i class="fab fa-github"></i></a>
+                    <a href="#" class="text-white me-3"><i class="fab fa-linkedin"></i></a>
+                    <a href="#" class="text-white"><i class="fab fa-twitter"></i></a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="script.js"></script>
 </body>
 </html>
