@@ -892,15 +892,36 @@ function showCoverLetterInputModal(resumeData, originalText, generateBtn) {
     });
 }
 
-// Call API to generate cover letter
+// Call API to generate cover letter with comprehensive data
 function generateCoverLetterAPI(resumeData, targetRole, companyName, resumeSummary, originalText, generateBtn) {
+    console.log('📝 Preparing cover letter request with data:', {
+        hasResumeData: !!resumeData,
+        targetRole,
+        companyName,
+        resumeDataKeys: Object.keys(resumeData || {})
+    });
+
+    // Prepare comprehensive request data
     const requestData = {
         role: targetRole,
         companyName: companyName || null,
-        resumeSummary: resumeSummary || resumeData.careerObjective || null,
-        experience: resumeData.experience || [],
-        skills: resumeData.skills || []
+        resumeData: resumeData, // Send full resume data
+        // Also send individual fields for backward compatibility
+        resumeSummary: resumeSummary || resumeData?.careerObjective || null,
+        experience: resumeData?.experience || [],
+        skills: resumeData?.skills || [],
+        fullName: resumeData?.fullName || '',
+        email: resumeData?.email || '',
+        phone: resumeData?.phone || ''
     };
+
+    console.log('🚀 Sending cover letter generation request:', {
+        role: requestData.role,
+        hasCompanyName: !!requestData.companyName,
+        experienceCount: Array.isArray(requestData.experience) ? requestData.experience.length : 0,
+        skillsCount: Array.isArray(requestData.skills) ? requestData.skills.length : 0,
+        hasFullName: !!requestData.fullName
+    });
 
     fetch('/api/resume/generateCoverLetter', {
         method: 'POST',
@@ -909,22 +930,51 @@ function generateCoverLetterAPI(resumeData, targetRole, companyName, resumeSumma
         },
         body: JSON.stringify(requestData)
     })
-    .then(response => response.json())
+    .then(response => {
+        console.log('📨 Cover letter API response status:', response.status);
+        return response.json();
+    })
     .then(result => {
+        console.log('✅ Cover letter API result:', {
+            success: result.success,
+            isTemplate: result.data?.isTemplate,
+            wordCount: result.data?.wordCount,
+            error: result.error
+        });
+
         if (result.success) {
-            showCoverLetterModal(result.data.coverLetter, targetRole, companyName, result.data.isTemplate);
+            showCoverLetterModal(
+                result.data.coverLetter, 
+                targetRole, 
+                companyName, 
+                result.data.isTemplate,
+                result.data
+            );
+            
             if (result.data.isTemplate) {
-                showAlert('Cover letter generated using template (AI service temporarily unavailable)', 'warning');
+                showAlert('Cover letter generated using professional template (AI service temporarily unavailable)', 'warning');
             } else {
-                showAlert('Cover letter generated successfully using AI!', 'success');
+                showAlert(`Cover letter generated successfully using AI! (${result.data.wordCount} words)`, 'success');
             }
         } else {
-            showAlert('Error generating cover letter: ' + result.message, 'danger');
+            console.error('❌ Cover letter generation failed:', result);
+            
+            // Handle specific error types
+            let errorMessage = result.message || 'Unknown error occurred';
+            if (result.error === 'MISSING_ROLE') {
+                errorMessage = 'Please specify the target job role';
+            } else if (result.error === 'INVALID_RESUME_DATA') {
+                errorMessage = 'Resume data is incomplete. Please fill in: ' + (result.details || []).join(', ');
+            } else if (result.error === 'OPENAI_NOT_CONFIGURED') {
+                errorMessage = 'AI service is not available. Please contact support.';
+            }
+            
+            showAlert('Error: ' + errorMessage, 'danger');
         }
     })
     .catch(error => {
-        console.error('Error generating cover letter:', error);
-        showAlert('Error generating cover letter. Please try again.', 'danger');
+        console.error('❌ Network error generating cover letter:', error);
+        showAlert('Network error: Unable to generate cover letter. Please check your connection and try again.', 'danger');
     })
     .finally(() => {
         if (generateBtn) {
@@ -934,8 +984,16 @@ function generateCoverLetterAPI(resumeData, targetRole, companyName, resumeSumma
     });
 }
 
-// Show cover letter result modal
-function showCoverLetterModal(coverLetter, role, companyName, isTemplate = false) {
+// Show cover letter result modal with enhanced metadata
+function showCoverLetterModal(coverLetter, role, companyName, isTemplate = false, metadata = {}) {
+    console.log('📋 Showing cover letter modal:', {
+        isTemplate,
+        role,
+        companyName,
+        wordCount: metadata.wordCount,
+        aiModel: metadata.aiModel
+    });
+
     // Remove existing modal if any
     const existingModal = document.getElementById('coverLetterModal');
     if (existingModal) {
@@ -945,6 +1003,7 @@ function showCoverLetterModal(coverLetter, role, companyName, isTemplate = false
     const headerClass = isTemplate ? 'bg-warning text-dark' : 'bg-success text-white';
     const iconClass = isTemplate ? 'fas fa-file-contract' : 'fas fa-robot';
     const titleSuffix = isTemplate ? ' (Template)' : ' (AI Generated)';
+    const wordCount = metadata.wordCount || coverLetter.split(' ').length;
 
     // Create modal HTML
     const modalHTML = `
@@ -974,7 +1033,15 @@ function showCoverLetterModal(coverLetter, role, companyName, isTemplate = false
                         <div class="mb-3">
                             <label for="coverLetterText" class="form-label fw-bold">Cover Letter:</label>
                             <textarea class="form-control" id="coverLetterText" rows="15" style="font-family: 'Times New Roman', serif;">${coverLetter}</textarea>
-                            <small class="text-muted">You can edit the text above before copying or downloading.</small>
+                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                <small class="text-muted">You can edit the text above before copying or downloading.</small>
+                                <small class="text-muted">
+                                    <i class="fas fa-chart-bar me-1"></i>
+                                    ${wordCount} words
+                                    ${metadata.aiModel ? ` • Generated with ${metadata.aiModel}` : ''}
+                                    ${metadata.generatedAt ? ` • ${new Date(metadata.generatedAt).toLocaleTimeString()}` : ''}
+                                </small>
+                            </div>
                         </div>
                         
                         <div class="row text-center mt-3">

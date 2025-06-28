@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interview Questions Generator - Smart Resume Builder AI</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .question-card {
+            border-left: 4px solid #007bff;
+            background: #f8f9fa;
+        }
+        .loading-spinner {
+            display: none;
+        }
+        .result-section {
+            display: none;
+        }
+        .sample-data-btn {
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container py-5">
+        <div class="row">
+            <div class="col-lg-8 mx-auto">
+                <!-- Header -->
+                <div class="text-center mb-5">
+                    <h1 class="mb-3">
+                        <i class="fas fa-question-circle text-primary me-2"></i>
+                        Interview Questions Generator
+                    </h1>
+                    <p class="text-muted">Generate personalized interview questions based on your resume and target job role</p>
+                </div>
+
+                <!-- Input Form -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-upload me-2"></i>
+                            Resume Information
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="interviewForm">
+                            <!-- Quick Actions -->
+                            <div class="d-flex justify-content-end mb-3">
+                                <button type="button" class="btn btn-outline-secondary btn-sm sample-data-btn" onclick="loadSampleData()">
+                                    <i class="fas fa-magic me-1"></i>Load Sample Data
+                                </button>
+                            </div>
+
+                            <!-- Job Title -->
+                            <div class="mb-3">
+                                <label for="jobTitle" class="form-label fw-bold">
+                                    Target Job Title <small class="text-muted">(Optional)</small>
+                                </label>
+                                <input type="text" class="form-control" id="jobTitle" 
+                                       placeholder="e.g., Software Engineer, Data Analyst, Product Manager">
+                                <small class="text-muted">Leave blank for general questions</small>
+                            </div>
+
+                            <!-- Resume Data -->
+                            <div class="mb-3">
+                                <label for="resumeData" class="form-label fw-bold">Resume Data <span class="text-danger">*</span></label>
+                                <textarea class="form-control" id="resumeData" rows="12" 
+                                          placeholder='Paste your resume data in JSON format or use the "Load Sample Data" button above'>
+{
+  "fullName": "Your Name",
+  "email": "your.email@example.com",
+  "careerObjective": "Your career objective or summary",
+  "experience": [
+    {
+      "role": "Job Title",
+      "company": "Company Name",
+      "duration": "2020-2024",
+      "description": "Your job responsibilities and achievements"
+    }
+  ],
+  "skills": ["Skill1", "Skill2", "Skill3"],
+  "education": [
+    {
+      "degree": "Your Degree",
+      "college": "University Name",
+      "year": "2020"
+    }
+  ]
+}</textarea>
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Provide your resume data in JSON format. Use "Load Sample Data" for an example.
+                                </small>
+                            </div>
+
+                            <!-- Submit Button -->
+                            <div class="text-center">
+                                <button type="submit" class="btn btn-primary btn-lg px-5" id="generateBtn">
+                                    <i class="fas fa-cog me-2"></i>
+                                    Generate Interview Questions
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Loading State -->
+                <div class="text-center loading-spinner" id="loadingSpinner">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Generating personalized interview questions...</p>
+                </div>
+
+                <!-- Results Section -->
+                <div class="result-section" id="resultSection">
+                    <div class="card shadow-sm">
+                        <div class="card-header d-flex justify-content-between align-items-center" id="resultHeader">
+                            <h5 class="mb-0">
+                                <i class="fas fa-list-ol me-2"></i>
+                                Generated Interview Questions
+                            </h5>
+                            <span class="badge bg-success" id="resultBadge">AI Generated</span>
+                        </div>
+                        <div class="card-body">
+                            <!-- Metadata -->
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <small class="text-muted">
+                                        <i class="fas fa-user me-1"></i>
+                                        Candidate: <span id="candidateName">-</span>
+                                    </small>
+                                </div>
+                                <div class="col-md-6 text-md-end">
+                                    <small class="text-muted">
+                                        <i class="fas fa-briefcase me-1"></i>
+                                        Role: <span id="targetRole">-</span>
+                                    </small>
+                                </div>
+                            </div>
+
+                            <!-- Questions List -->
+                            <div id="questionsList">
+                                <!-- Questions will be inserted here -->
+                            </div>
+
+                            <!-- Actions -->
+                            <div class="text-center mt-4">
+                                <button class="btn btn-outline-primary me-2" onclick="copyQuestions()">
+                                    <i class="fas fa-copy me-1"></i>Copy Questions
+                                </button>
+                                <button class="btn btn-outline-success me-2" onclick="downloadQuestions()">
+                                    <i class="fas fa-download me-1"></i>Download
+                                </button>
+                                <button class="btn btn-outline-info" onclick="generateNew()">
+                                    <i class="fas fa-sync-alt me-1"></i>Generate New Set
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Error Section -->
+                <div id="errorSection" style="display: none;">
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Error:</strong> <span id="errorMessage"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let lastGeneratedQuestions = [];
+        let lastMetadata = {};
+
+        // Load sample data
+        function loadSampleData() {
+            const sampleData = {
+                fullName: "Sarah Johnson",
+                email: "sarah.johnson@email.com",
+                phone: "555-987-6543",
+                careerObjective: "Experienced full-stack developer with 3+ years building scalable web applications. Passionate about clean code, user experience, and mentoring junior developers.",
+                experience: [
+                    {
+                        role: "Senior Full Stack Developer",
+                        company: "TechCorp Solutions",
+                        duration: "2021-2024",
+                        description: "Led development of React-based web applications serving 10,000+ users. Migrated legacy systems to microservices architecture, reducing load times by 40%. Mentored 3 junior developers and conducted code reviews."
+                    },
+                    {
+                        role: "Software Developer",
+                        company: "StartupXYZ",
+                        duration: "2020-2021",
+                        description: "Built REST APIs using Node.js and Express. Implemented automated testing suites, increasing code coverage from 60% to 95%. Collaborated with design team on UI/UX improvements."
+                    }
+                ],
+                skills: ["JavaScript", "React", "Node.js", "Python", "MongoDB", "AWS", "Docker", "Git", "Jest", "TypeScript"],
+                education: [
+                    {
+                        degree: "Bachelor of Science in Computer Science",
+                        college: "State University",
+                        year: "2020"
+                    }
+                ],
+                projects: [
+                    {
+                        title: "E-commerce Platform",
+                        description: "Built full-stack e-commerce platform with React frontend and Node.js backend. Integrated payment processing and inventory management.",
+                        techStack: "React, Node.js, MongoDB, Stripe API"
+                    }
+                ],
+                certifications: ["AWS Cloud Practitioner", "MongoDB Developer Associate"]
+            };
+
+            document.getElementById('resumeData').value = JSON.stringify(sampleData, null, 2);
+            document.getElementById('jobTitle').value = "Senior Software Engineer";
+        }
+
+        // Form submission
+        document.getElementById('interviewForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const jobTitle = document.getElementById('jobTitle').value.trim();
+            const resumeDataText = document.getElementById('resumeData').value.trim();
+
+            // Validate input
+            if (!resumeDataText) {
+                showError('Please provide resume data');
+                return;
+            }
+
+            let resumeData;
+            try {
+                resumeData = JSON.parse(resumeDataText);
+            } catch (error) {
+                showError('Invalid JSON format in resume data. Please check the syntax.');
+                return;
+            }
+
+            // Show loading
+            showLoading(true);
+            hideError();
+            hideResults();
+
+            try {
+                const response = await fetch('/api/interview/generate-questions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        resumeData: resumeData,
+                        jobTitle: jobTitle || null
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    lastGeneratedQuestions = result.data.questions;
+                    lastMetadata = result.data;
+                    displayResults(result.data);
+                    
+                    if (result.data.isTemplate) {
+                        showAlert('Questions generated using template (AI service temporarily unavailable)', 'warning');
+                    } else {
+                        showAlert('Interview questions generated successfully!', 'success');
+                    }
+                } else {
+                    showError(result.message || 'Failed to generate interview questions');
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+                showError('Network error. Please check your connection and try again.');
+            } finally {
+                showLoading(false);
+            }
+        });
+
+        // Display results
+        function displayResults(data) {
+            const questionsList = document.getElementById('questionsList');
+            const candidateName = document.getElementById('candidateName');
+            const targetRole = document.getElementById('targetRole');
+            const resultBadge = document.getElementById('resultBadge');
+
+            // Update metadata
+            candidateName.textContent = data.candidateName || 'Unknown';
+            targetRole.textContent = data.jobTitle || 'General Position';
+            
+            // Update badge
+            if (data.isTemplate) {
+                resultBadge.textContent = 'Template Generated';
+                resultBadge.className = 'badge bg-warning';
+            } else {
+                resultBadge.textContent = 'AI Generated';
+                resultBadge.className = 'badge bg-success';
+            }
+
+            // Display questions
+            questionsList.innerHTML = '';
+            data.questions.forEach((question, index) => {
+                const questionCard = document.createElement('div');
+                questionCard.className = 'question-card p-3 mb-3';
+                questionCard.innerHTML = `
+                    <div class="d-flex align-items-start">
+                        <span class="badge bg-primary me-3">${index + 1}</span>
+                        <p class="mb-0">${question}</p>
+                    </div>
+                `;
+                questionsList.appendChild(questionCard);
+            });
+
+            document.getElementById('resultSection').style.display = 'block';
+        }
+
+        // Utility functions
+        function showLoading(show) {
+            const spinner = document.getElementById('loadingSpinner');
+            const btn = document.getElementById('generateBtn');
+            
+            if (show) {
+                spinner.style.display = 'block';
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating...';
+            } else {
+                spinner.style.display = 'none';
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-cog me-2"></i>Generate Interview Questions';
+            }
+        }
+
+        function showError(message) {
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('errorSection').style.display = 'block';
+        }
+
+        function hideError() {
+            document.getElementById('errorSection').style.display = 'none';
+        }
+
+        function hideResults() {
+            document.getElementById('resultSection').style.display = 'none';
+        }
+
+        function showAlert(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+            alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 400px;';
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(alertDiv);
+
+            setTimeout(() => {
+                if (alertDiv.parentElement) {
+                    alertDiv.remove();
+                }
+            }, 5000);
+        }
+
+        // Copy questions
+        function copyQuestions() {
+            if (lastGeneratedQuestions.length === 0) return;
+            
+            const text = lastGeneratedQuestions.map((q, i) => `${i + 1}. ${q}`).join('\n\n');
+            navigator.clipboard.writeText(text).then(() => {
+                showAlert('Questions copied to clipboard!', 'success');
+            });
+        }
+
+        // Download questions
+        function downloadQuestions() {
+            if (lastGeneratedQuestions.length === 0) return;
+            
+            const text = `Interview Questions for ${lastMetadata.candidateName}\nRole: ${lastMetadata.jobTitle}\nGenerated: ${new Date().toLocaleDateString()}\n\n${lastGeneratedQuestions.map((q, i) => `${i + 1}. ${q}`).join('\n\n')}`;
+            
+            const blob = new Blob([text], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `interview-questions-${lastMetadata.candidateName || 'candidate'}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Generate new questions
+        function generateNew() {
+            document.getElementById('interviewForm').dispatchEvent(new Event('submit'));
+        }
+    </script>
+</body>
+</html>

@@ -12,6 +12,7 @@ const resumeRoutes = require('./routes/resume');
 const aiRoutes = require('./routes/ai');
 const atsRoutes = require('./routes/ats');
 const reviewRoutes = require('./routes/review');
+const interviewRoutes = require('./routes/interview');
 
 // Import Resume model for public view
 const Resume = require('./models/Resume');
@@ -84,6 +85,7 @@ app.use('/api/resume', resumeRoutes);
 app.use('/api/resume', aiRoutes);
 app.use('/api/resume', atsRoutes);
 app.use('/api/review', reviewRoutes);
+app.use('/api/interview', interviewRoutes);
 
 // Serve specific HTML files
 app.get('/login.html', (req, res) => {
@@ -108,6 +110,10 @@ app.get('/ats-check.html', (req, res) => {
 
 app.get('/review.html', (req, res) => {
     res.sendFile(path.join(__dirname, '../client/review.html'));
+});
+
+app.get('/interview-questions.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../client/interview-questions.html'));
 });
 
 app.get('/voice-demo.html', (req, res) => {

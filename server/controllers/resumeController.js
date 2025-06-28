@@ -271,120 +271,182 @@ const deleteResume = async (req, res) => {
     }
 };
 
-// Generate cover letter using OpenAI
+// Generate cover letter using OpenAI API
 const generateCoverLetter = async (req, res) => {
     try {
-        const { role, resumeSummary, experience, skills, companyName } = req.body;
-
-        if (!role) {
-            return res.status(400).json({
-                success: false,
-                message: 'Role/position is required for cover letter generation'
-            });
-        }
-
-        // Check if OpenAI is configured
-        if (!process.env.OPENAI_API_KEY) {
-            return res.status(500).json({
-                success: false,
-                message: 'OpenAI API key not configured'
-            });
-        }
-
-        const { OpenAI } = require('openai');
-        const openai = new OpenAI({
-            apiKey: process.env.OPENAI_API_KEY
+        console.log('📝 Cover letter generation request received:', {
+            hasRole: !!req.body.role,
+            hasCompanyName: !!req.body.companyName,
+            hasResumeData: !!req.body.resumeData,
+            dataKeys: Object.keys(req.body)
         });
 
-        // Prepare experience summary
-        const experienceText = experience && experience.length > 0 
-            ? experience.map(exp => `${exp.role} at ${exp.company}: ${exp.description}`).join('. ')
-            : 'Recent graduate or career changer seeking new opportunities';
+        const { 
+            role, 
+            companyName, 
+            resumeSummary, 
+            experience, 
+            skills, 
+            resumeData 
+        } = req.body;
 
-        // Prepare skills list
-        const skillsText = skills && skills.length > 0 
-            ? skills.join(', ')
-            : 'Various technical and soft skills';
+        // 1. Validate required fields
+        if (!role || role.trim() === '') {
+            console.log('❌ Missing required field: role');
+            return res.status(400).json({
+                success: false,
+                message: 'Target role/position is required for cover letter generation',
+                error: 'MISSING_ROLE'
+            });
+        }
 
-        // Create structured prompt for cover letter
-        const prompt = `Write a professional, concise cover letter for the following:
+        // Use resumeData if provided (full resume object) or individual fields
+        const fullResumeData = resumeData || {
+            fullName: req.body.fullName,
+            email: req.body.email,
+            phone: req.body.phone,
+            careerObjective: resumeSummary,
+            experience: experience,
+            skills: skills
+        };
 
-Position: ${role}
-${companyName ? `Company: ${companyName}` : ''}
-${resumeSummary ? `Professional Summary: ${resumeSummary}` : ''}
+        // Validate essential resume data
+        const validation = validateResumeData(fullResumeData);
+        if (!validation.isValid) {
+            console.log('❌ Resume validation failed:', validation.errors);
+            return res.status(400).json({
+                success: false,
+                message: 'Resume data validation failed: ' + validation.errors.join(', '),
+                error: 'INVALID_RESUME_DATA',
+                details: validation.errors
+            });
+        }
 
-Experience: ${experienceText}
+        // 2. Check OpenAI configuration
+        if (!process.env.OPENAI_API_KEY) {
+            console.log('❌ OpenAI API key not configured');
+            return res.status(500).json({
+                success: false,
+                message: 'AI service is not configured. Please contact support.',
+                error: 'OPENAI_NOT_CONFIGURED'
+            });
+        }
 
-Key Skills: ${skillsText}
+        // 3. Format resume data for prompt
+        const formattedData = formatResumeDataForPrompt(fullResumeData, role, companyName);
+        console.log('✅ Resume data formatted for prompt:', {
+            nameLength: formattedData.name.length,
+            experienceCount: formattedData.experienceEntries.length,
+            skillsCount: formattedData.skillsList.length,
+            hasObjective: !!formattedData.objective
+        });
 
-Requirements:
-- Keep it concise (3-4 paragraphs maximum)
-- Professional tone
-- Focus on relevant experience and skills
-- Include enthusiasm for the role
-- End with a call to action
-- No placeholder text like [Your Name] or [Company Name]
-- Make it personalized and compelling
-- Avoid generic phrases
-
-Format: Return only the cover letter text, no additional formatting or explanations.`;
-
+        // 4. Create structured prompt for OpenAI
+        const prompt = createCoverLetterPrompt(formattedData, role, companyName);
+        
         let coverLetter;
         let isTemplate = false;
+        let aiModel = 'gpt-3.5-turbo';
 
         try {
+            // 5. Call OpenAI API with error handling
+            console.log('🤖 Calling OpenAI API for cover letter generation...');
+            
+            const { OpenAI } = require('openai');
+            const openai = new OpenAI({
+                apiKey: process.env.OPENAI_API_KEY
+            });
+
             const completion = await openai.chat.completions.create({
-                model: "gpt-3.5-turbo",
+                model: aiModel,
                 messages: [
                     {
                         role: "system",
-                        content: "You are a professional career counselor and expert writer specializing in creating compelling cover letters. Write professional, personalized cover letters that highlight relevant experience and skills for specific roles."
+                        content: "You are an expert career counselor and professional writer specializing in creating compelling, personalized cover letters. Write engaging cover letters that showcase the candidate's unique value proposition and alignment with the target role. Avoid generic templates and clichés."
                     },
                     {
                         role: "user",
                         content: prompt
                     }
                 ],
-                max_tokens: 800,
-                temperature: 0.7
+                max_tokens: 1000,
+                temperature: 0.7,
+                presence_penalty: 0.1,
+                frequency_penalty: 0.1
             });
 
             coverLetter = completion.choices[0].message.content.trim();
+            console.log('✅ OpenAI API response received successfully');
+            console.log('📊 Cover letter stats:', {
+                length: coverLetter.length,
+                wordCount: coverLetter.split(' ').length,
+                paragraphs: coverLetter.split('\n\n').length
+            });
+
         } catch (openaiError) {
-            console.log('OpenAI API failed, generating template cover letter:', openaiError.message);
+            // 6. Handle OpenAI-specific errors with detailed logging
+            console.error('❌ OpenAI API Error:', {
+                error: openaiError.message,
+                code: openaiError.code,
+                type: openaiError.type,
+                status: openaiError.status
+            });
+            
+            let errorMessage = 'AI service temporarily unavailable';
+            
+            if (openaiError.code === 'insufficient_quota') {
+                errorMessage = 'AI service quota exceeded';
+            } else if (openaiError.code === 'invalid_api_key') {
+                errorMessage = 'AI service configuration error';
+            } else if (openaiError.code === 'rate_limit_exceeded') {
+                errorMessage = 'AI service rate limit exceeded, please try again in a moment';
+            }
             
             // Generate template-based cover letter as fallback
-            coverLetter = generateTemplateCoverLetter({
-                role,
-                companyName,
-                fullName,
-                experienceText,
-                skillsText,
-                resumeSummary
-            });
+            console.log('🔄 Generating template-based cover letter as fallback...');
+            coverLetter = generateTemplateCoverLetter(formattedData, role, companyName);
             isTemplate = true;
         }
 
-        res.json({
+        // 7. Return generated cover letter with metadata
+        const response = {
             success: true,
             data: {
                 coverLetter,
                 role,
                 companyName: companyName || null,
-                isTemplate
+                isTemplate,
+                aiModel: isTemplate ? 'template' : aiModel,
+                wordCount: coverLetter.split(' ').length,
+                generatedAt: new Date().toISOString()
             },
             message: isTemplate 
-                ? 'Cover letter generated using template (AI service temporarily unavailable)'
+                ? 'Cover letter generated using professional template (AI service temporarily unavailable)'
                 : 'Cover letter generated successfully using AI'
+        };
+
+        console.log('✅ Cover letter generation completed:', {
+            isTemplate,
+            wordCount: response.data.wordCount,
+            role,
+            companyName: companyName || 'not specified'
         });
 
+        res.json(response);
+
     } catch (error) {
-        console.error('Error generating cover letter:', error);
+        // 8. Comprehensive error logging and handling
+        console.error('❌ Critical error in cover letter generation:', {
+            message: error.message,
+            stack: error.stack,
+            requestBody: req.body
+        });
         
         res.status(500).json({
             success: false,
-            message: 'Error generating cover letter. Please try again.',
-            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            message: 'An unexpected error occurred while generating the cover letter. Please try again.',
+            error: 'INTERNAL_SERVER_ERROR',
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
     }
 };
@@ -722,24 +784,158 @@ const generatePublicResumeContent = (resume) => {
     `;
 };
 
-// Helper function to generate template-based cover letter
-const generateTemplateCoverLetter = ({ role, companyName, fullName, experienceText, skillsText, resumeSummary }) => {
+// Helper function to validate resume data for cover letter generation
+const validateResumeData = (resumeData) => {
+    const errors = [];
+    
+    // Check for basic contact information
+    if (!resumeData.fullName || resumeData.fullName.trim() === '') {
+        errors.push('Full name is required');
+    }
+    
+    // Check for experience (either experience array or career objective)
+    const hasExperience = resumeData.experience && 
+        (Array.isArray(resumeData.experience) ? resumeData.experience.length > 0 : Object.keys(resumeData.experience).length > 0);
+    
+    const hasObjective = resumeData.careerObjective && resumeData.careerObjective.trim() !== '';
+    
+    if (!hasExperience && !hasObjective) {
+        errors.push('Either work experience or career objective is required');
+    }
+    
+    // Check for skills
+    const hasSkills = resumeData.skills && 
+        (Array.isArray(resumeData.skills) ? resumeData.skills.length > 0 : resumeData.skills.trim() !== '');
+    
+    if (!hasSkills) {
+        errors.push('Skills section is required');
+    }
+    
+    return {
+        isValid: errors.length === 0,
+        errors
+    };
+};
+
+// Helper function to format resume data for prompt
+const formatResumeDataForPrompt = (resumeData, role, companyName) => {
+    // Format experience entries
+    let experienceEntries = [];
+    if (resumeData.experience) {
+        if (Array.isArray(resumeData.experience)) {
+            experienceEntries = resumeData.experience.filter(exp => exp.role && exp.company);
+        } else {
+            // Handle object format
+            experienceEntries = Object.values(resumeData.experience).filter(exp => exp.role && exp.company);
+        }
+    }
+    
+    // Format skills list
+    let skillsList = [];
+    if (resumeData.skills) {
+        if (Array.isArray(resumeData.skills)) {
+            skillsList = resumeData.skills.filter(skill => skill && skill.trim() !== '');
+        } else if (typeof resumeData.skills === 'string') {
+            skillsList = resumeData.skills.split(',').map(s => s.trim()).filter(s => s !== '');
+        }
+    }
+    
+    return {
+        name: resumeData.fullName || 'Professional',
+        email: resumeData.email || '',
+        phone: resumeData.phone || '',
+        objective: resumeData.careerObjective || '',
+        experienceEntries,
+        skillsList,
+        education: resumeData.education || null,
+        projects: resumeData.projects || null,
+        certifications: resumeData.certifications || null
+    };
+};
+
+// Helper function to create structured prompt for OpenAI
+const createCoverLetterPrompt = (formattedData, role, companyName) => {
+    const experienceText = formattedData.experienceEntries.length > 0
+        ? formattedData.experienceEntries.map(exp => 
+            `${exp.role} at ${exp.company}${exp.duration ? ` (${exp.duration})` : ''}: ${exp.description || 'Key responsibilities and achievements'}`
+          ).join('\n')
+        : 'Recent graduate or career changer with transferable skills';
+    
+    const skillsText = formattedData.skillsList.length > 0
+        ? formattedData.skillsList.join(', ')
+        : 'Various professional and technical skills';
+    
+    return `Create a compelling, personalized cover letter for this job application:
+
+CANDIDATE PROFILE:
+Name: ${formattedData.name}
+Target Position: ${role}
+${companyName ? `Target Company: ${companyName}` : 'Target Company: [Company applying to]'}
+
+PROFESSIONAL BACKGROUND:
+${formattedData.objective ? `Career Objective: ${formattedData.objective}` : ''}
+
+Work Experience:
+${experienceText}
+
+Core Skills & Competencies:
+${skillsText}
+
+COVER LETTER REQUIREMENTS:
+1. Professional, engaging tone that showcases personality
+2. 3-4 well-structured paragraphs (300-400 words total)
+3. Strong opening that captures attention
+4. Middle paragraphs highlighting relevant experience and achievements
+5. Closing with clear call-to-action
+6. Personalized to the role and company (if specified)
+7. Avoid generic templates, clichés, and placeholder text
+8. Include specific examples from experience when possible
+9. Show enthusiasm and cultural fit
+10. Professional salutation and closing
+
+AVOID:
+- Generic phrases like "I am writing to express my interest"
+- Repetition of resume content without adding value
+- Overly formal or outdated language
+- Spelling/grammar errors
+- Placeholder text like [Your Name] or [Company Name]
+
+OUTPUT FORMAT:
+Return only the complete cover letter text, properly formatted with appropriate spacing between paragraphs. Do not include any additional commentary or explanations.`;
+};
+
+// Helper function to generate template-based cover letter (enhanced)
+const generateTemplateCoverLetter = (formattedData, role, companyName) => {
     const company = companyName || 'your organization';
     const position = role || 'this position';
-    const name = fullName || 'the candidate';
+    const name = formattedData.name;
+    
+    // Create experience summary
+    const experienceText = formattedData.experienceEntries.length > 0
+        ? formattedData.experienceEntries.map(exp => 
+            `${exp.role} at ${exp.company}`
+          ).join(', ')
+        : 'professional experience in various roles';
+    
+    // Create skills summary
+    const skillsText = formattedData.skillsList.length > 0
+        ? formattedData.skillsList.slice(0, 5).join(', ') // Top 5 skills
+        : 'technical and professional skills';
+    
+    // Use career objective if available
+    const objectiveText = formattedData.objective 
+        ? formattedData.objective
+        : `seeking opportunities to contribute to ${company}'s success while advancing my career in ${role}`;
     
     return `Dear Hiring Manager,
 
-I am writing to express my strong interest in the ${position} position${companyName ? ` at ${companyName}` : ''}. With my background in software development and proven track record of delivering high-quality solutions, I am confident that I would be a valuable addition to your team.
+I am excited to submit my application for the ${position} position${companyName ? ` at ${companyName}` : ''}. ${objectiveText} With my background in ${experienceText} and expertise in ${skillsText}, I am confident I would be a valuable addition to your team.
 
-${resumeSummary ? 
-    `${resumeSummary} This experience has prepared me well for the challenges and opportunities that come with the ${position} role.` :
-    `My professional experience includes ${experienceText || 'developing technical solutions and working collaboratively in team environments'}. This background has equipped me with both the technical skills and collaborative mindset necessary to excel in the ${position} role.`
-}
+My professional experience has equipped me with both the technical capabilities and collaborative mindset necessary to excel in this role. I have consistently delivered high-quality results while working effectively in team environments. ${formattedData.experienceEntries.length > 0 ? `In my previous roles, including ${formattedData.experienceEntries[0].role}${formattedData.experienceEntries[0].company ? ` at ${formattedData.experienceEntries[0].company}` : ''}, I have developed strong problem-solving skills and the ability to adapt to new challenges quickly.` : 'I bring fresh perspectives and a strong commitment to professional excellence.'}
 
-I bring expertise in ${skillsText || 'modern development technologies and best practices'}, along with a passion for creating efficient, scalable solutions. I am particularly drawn to ${company} because of your reputation for innovation and commitment to excellence. I am excited about the opportunity to contribute to your team's success while continuing to grow my technical abilities.
+I am particularly drawn to ${company} because of your commitment to innovation and excellence. The ${position} role aligns perfectly with my career goals and would allow me to contribute meaningfully while continuing to develop my expertise in ${skillsText}. I am eager to bring my passion for quality work and continuous improvement to your team.
 
-I would welcome the opportunity to discuss how my skills and enthusiasm can contribute to your team. Thank you for considering my application. I look forward to hearing from you soon.
+Thank you for considering my application. I would welcome the opportunity to discuss how my skills and enthusiasm can contribute to your organization's continued success. I look forward to hearing from you soon.
 
 Sincerely,
 ${name}`;
