@@ -1134,6 +1134,513 @@ function regenerateCoverLetter() {
     }, 300);
 }
 
+// ============== INTERVIEW QUESTIONS FUNCTIONALITY ==============
+
+// Generate interview questions functionality
+function generateInterviewQuestions() {
+    const savedData = localStorage.getItem('resumeData');
+    if (!savedData) {
+        showAlert('No resume data found. Please create or load a resume first.', 'warning');
+        return;
+    }
+
+    const generateBtn = document.getElementById('generateInterviewQuestionsBtn');
+    const originalText = generateBtn ? generateBtn.innerHTML : '';
+    
+    if (generateBtn) {
+        generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating...';
+        generateBtn.disabled = true;
+    }
+
+    try {
+        const data = JSON.parse(savedData);
+        
+        // Show input modal first
+        showInterviewQuestionsInputModal(data, originalText, generateBtn);
+        
+    } catch (error) {
+        console.error('Error parsing resume data:', error);
+        showAlert('Error reading resume data. Please try again.', 'danger');
+        
+        if (generateBtn) {
+            generateBtn.innerHTML = originalText;
+            generateBtn.disabled = false;
+        }
+    }
+}
+
+// Show interview questions input modal
+function showInterviewQuestionsInputModal(resumeData, originalText, generateBtn) {
+    // Remove existing modal if any
+    const existingModal = document.getElementById('interviewQuestionsInputModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    // Create input modal HTML
+    const modalHTML = `
+        <div class="modal fade" id="interviewQuestionsInputModal" tabindex="-1" aria-labelledby="interviewQuestionsInputLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title" id="interviewQuestionsInputLabel">
+                            <i class="fas fa-brain me-2"></i>Generate Interview Questions
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-info">
+                            <i class="fas fa-lightbulb me-2"></i>
+                            <strong>AI-Powered Interview Preparation</strong><br>
+                            Get personalized interview questions based on your resume and target position. 
+                            Our AI analyzes your experience, skills, and role requirements to generate relevant questions.
+                        </div>
+                        
+                        <form id="interviewQuestionsForm">
+                            <div class="mb-3">
+                                <label for="targetJobTitle" class="form-label">
+                                    <i class="fas fa-briefcase me-2"></i>Target Job Title/Position
+                                </label>
+                                <input type="text" class="form-control" id="targetJobTitle" 
+                                       placeholder="e.g., Senior Software Developer, Marketing Manager, Data Scientist"
+                                       value="${resumeData.careerObjective || ''}" required>
+                                <div class="form-text">Specify the role you're interviewing for to get more targeted questions.</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="companyContext" class="form-label">
+                                    <i class="fas fa-building me-2"></i>Company/Industry Context (Optional)
+                                </label>
+                                <input type="text" class="form-control" id="companyContext" 
+                                       placeholder="e.g., Tech startup, Fortune 500, Healthcare, Finance">
+                                <div class="form-text">Help us tailor questions to your target industry or company type.</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="experienceLevel" class="form-label">
+                                    <i class="fas fa-chart-line me-2"></i>Experience Level
+                                </label>
+                                <select class="form-select" id="experienceLevel">
+                                    <option value="entry">Entry Level (0-2 years)</option>
+                                    <option value="mid" selected>Mid Level (2-5 years)</option>
+                                    <option value="senior">Senior Level (5-10 years)</option>
+                                    <option value="executive">Executive Level (10+ years)</option>
+                                </select>
+                            </div>
+
+                            <div class="alert alert-warning">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>Resume Summary:</strong><br>
+                                <small>
+                                    <strong>Name:</strong> ${resumeData.fullName || 'Not specified'}<br>
+                                    <strong>Skills:</strong> ${Array.isArray(resumeData.skills) ? resumeData.skills.slice(0, 3).join(', ') + (resumeData.skills.length > 3 ? '...' : '') : 'Not specified'}<br>
+                                    <strong>Experience:</strong> ${Array.isArray(resumeData.experience) ? resumeData.experience.length : 0} entries
+                                </small>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" id="generateInterviewQuestionsSubmit">
+                            <i class="fas fa-brain me-2"></i>Generate Questions
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Add modal to DOM
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('interviewQuestionsInputModal'));
+    modal.show();
+    
+    // Handle submit button
+    document.getElementById('generateInterviewQuestionsSubmit').addEventListener('click', function() {
+        const targetJobTitle = document.getElementById('targetJobTitle').value.trim();
+        
+        if (!targetJobTitle) {
+            showAlert('Please enter a target job title/position.', 'warning');
+            return;
+        }
+        
+        const companyContext = document.getElementById('companyContext').value.trim();
+        const experienceLevel = document.getElementById('experienceLevel').value;
+        
+        // Close input modal
+        modal.hide();
+        
+        // Generate questions
+        generateInterviewQuestionsAPI(resumeData, targetJobTitle, companyContext, experienceLevel, originalText, generateBtn);
+    });
+    
+    // Reset button state when modal is closed
+    document.getElementById('interviewQuestionsInputModal').addEventListener('hidden.bs.modal', function () {
+        if (generateBtn) {
+            generateBtn.innerHTML = originalText;
+            generateBtn.disabled = false;
+        }
+        // Remove modal from DOM
+        this.remove();
+    });
+}
+
+// Generate interview questions via API
+function generateInterviewQuestionsAPI(resumeData, targetJobTitle, companyContext, experienceLevel, originalText, generateBtn) {
+    // Prepare request data
+    const requestData = {
+        resumeData: resumeData,
+        jobTitle: targetJobTitle,
+        companyContext: companyContext,
+        experienceLevel: experienceLevel
+    };
+
+    console.log('📤 Sending interview questions request:', requestData);
+
+    fetch('/api/interview/questions', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData)
+    })
+    .then(response => {
+        console.log('📥 Interview questions response status:', response.status);
+        
+        // Handle non-200 status codes
+        if (!response.ok) {
+            return response.json().then(errorData => {
+                throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+            });
+        }
+        
+        return response.json();
+    })
+    .then(data => {
+        console.log('📋 Interview questions response:', data);
+        
+        if (generateBtn) {
+            generateBtn.innerHTML = originalText;
+            generateBtn.disabled = false;
+        }
+        
+        if (data.success && data.data && data.data.questions) {
+            // Store in localStorage for future reference
+            const questionsData = {
+                questions: data.data.questions,
+                jobTitle: targetJobTitle,
+                companyContext: companyContext,
+                experienceLevel: experienceLevel,
+                generatedAt: new Date().toISOString(),
+                isTemplate: data.data.isTemplate || false,
+                aiModel: data.data.aiModel || 'unknown',
+                highlightedSkills: data.data.highlightedSkills || []
+            };
+            
+            localStorage.setItem('lastInterviewQuestions', JSON.stringify(questionsData));
+            
+            // Show questions in modal
+            showInterviewQuestionsModal(questionsData);
+            
+            showAlert(data.message || '✨ Interview questions generated successfully!', 'success');
+        } else {
+            // Handle server errors with detailed messages
+            let errorMessage = 'Failed to generate interview questions. ';
+            
+            if (data.error === 'INVALID_RESUME_DATA') {
+                errorMessage += 'Please ensure your resume includes:';
+                if (data.details && Array.isArray(data.details)) {
+                    errorMessage += '\n• ' + data.details.join('\n• ');
+                }
+                if (data.suggestions && Array.isArray(data.suggestions)) {
+                    errorMessage += '\n\nSuggestions:\n• ' + data.suggestions.join('\n• ');
+                }
+            } else if (data.error === 'OPENAI_NOT_CONFIGURED') {
+                errorMessage += 'AI service is temporarily unavailable. Please contact support.';
+            } else if (data.error === 'OPENAI_QUOTA_EXCEEDED') {
+                errorMessage += 'AI service quota exceeded. Please try again later or contact support.';
+            } else if (data.error === 'OPENAI_RATE_LIMIT') {
+                errorMessage += 'Too many requests. Please wait a moment and try again.';
+            } else {
+                errorMessage += data.message || 'Please try again.';
+            }
+            
+            showAlert(errorMessage, 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('❌ Error generating interview questions:', error);
+        
+        if (generateBtn) {
+            generateBtn.innerHTML = originalText;
+            generateBtn.disabled = false;
+        }
+        
+        let errorMessage = 'Error generating interview questions: ';
+        
+        if (error.message.includes('Failed to fetch')) {
+            errorMessage += 'Network connection error. Please check your internet connection.';
+        } else if (error.message.includes('HTTP 500')) {
+            errorMessage += 'Server error. Please try again in a moment.';
+        } else if (error.message.includes('HTTP 429')) {
+            errorMessage += 'Too many requests. Please wait and try again.';
+        } else if (error.message.includes('HTTP 401')) {
+            errorMessage += 'Authentication error. Please refresh the page and try again.';
+        } else {
+            errorMessage += error.message || 'Unknown error occurred.';
+        }
+        
+        showAlert(errorMessage, 'danger');
+    });
+}
+
+// Show interview questions in modal
+function showInterviewQuestionsModal(questionsData) {
+    const questions = questionsData.questions;
+    const highlightedSkills = questionsData.highlightedSkills || [];
+    
+    // Create questions HTML
+    let questionsHTML = '';
+    questions.forEach((question, index) => {
+        // Highlight skills in questions
+        let highlightedQuestion = question;
+        highlightedSkills.forEach(skill => {
+            const regex = new RegExp(`\\b${skill}\\b`, 'gi');
+            highlightedQuestion = highlightedQuestion.replace(regex, `<mark class="bg-warning bg-opacity-50">${skill}</mark>`);
+        });
+        
+        questionsHTML += `
+            <div class="question-item card mb-3">
+                <div class="card-body">
+                    <div class="d-flex align-items-start">
+                        <span class="badge bg-primary me-3 mt-1" style="min-width: 30px;">${index + 1}</span>
+                        <div class="flex-grow-1">
+                            <p class="mb-2 question-text">${highlightedQuestion}</p>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-sm btn-outline-primary copy-question-btn" data-question="${question}">
+                                    <i class="fas fa-copy me-1"></i>Copy
+                                </button>
+                                <button class="btn btn-sm btn-outline-success practice-btn" data-question="${question}">
+                                    <i class="fas fa-microphone me-1"></i>Practice
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    // Skills summary
+    let skillsHTML = '';
+    if (highlightedSkills.length > 0) {
+        skillsHTML = `
+            <div class="alert alert-info mb-3">
+                <i class="fas fa-tags me-2"></i>
+                <strong>Key Skills Referenced:</strong>
+                ${highlightedSkills.map(skill => `<span class="badge bg-info text-dark me-1">${skill}</span>`).join('')}
+            </div>
+        `;
+    }
+    
+    // Update modal content
+    const modalContent = `
+        <div class="text-center mb-4">
+            <h6 class="text-primary">
+                <i class="fas fa-briefcase me-2"></i>${questionsData.jobTitle}
+                ${questionsData.companyContext ? ` at ${questionsData.companyContext}` : ''}
+            </h6>
+            <small class="text-muted">
+                Generated ${new Date(questionsData.generatedAt).toLocaleString()} 
+                ${questionsData.isTemplate ? '(Template-based)' : '(AI-powered)'}
+            </small>
+        </div>
+        
+        ${skillsHTML}
+        
+        <div class="questions-container">
+            ${questionsHTML}
+        </div>
+        
+        <div class="text-center mt-4">
+            <div class="alert alert-light border">
+                <i class="fas fa-lightbulb me-2 text-warning"></i>
+                <strong>Tip:</strong> Practice your answers out loud and time yourself. 
+                Most interview answers should be 1-3 minutes long.
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('interviewQuestionsContent').innerHTML = modalContent;
+    
+    // Show action buttons
+    document.getElementById('copyAllQuestionsBtn').style.display = 'inline-block';
+    document.getElementById('exportQuestionsBtn').style.display = 'inline-block';
+    document.getElementById('generateNewQuestionsBtn').style.display = 'inline-block';
+    
+    // Setup event handlers for action buttons
+    setupInterviewQuestionsEventHandlers(questionsData);
+    
+    // Save questions to localStorage for "Show Last Questions" feature
+    localStorage.setItem('lastInterviewQuestions', JSON.stringify(questionsData));
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('interviewQuestionsModal'));
+    modal.show();
+}
+
+// Setup event handlers for interview questions modal
+function setupInterviewQuestionsEventHandlers(questionsData) {
+    // Copy individual question buttons
+    document.querySelectorAll('.copy-question-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const question = this.getAttribute('data-question');
+            navigator.clipboard.writeText(question).then(() => {
+                showAlert('Question copied to clipboard!', 'success');
+            });
+        });
+    });
+    
+    // Practice buttons (could integrate with speech recognition)
+    document.querySelectorAll('.practice-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const question = this.getAttribute('data-question');
+            showAlert('💡 Practice tip: Record yourself answering this question and review it!', 'info');
+        });
+    });
+    
+    // Copy all questions button
+    document.getElementById('copyAllQuestionsBtn').addEventListener('click', function() {
+        copyAllInterviewQuestions(questionsData);
+    });
+    
+    // Export as PDF button
+    document.getElementById('exportQuestionsBtn').addEventListener('click', function() {
+        exportInterviewQuestionsPDF(questionsData);
+    });
+    
+    // Generate new questions button
+    document.getElementById('generateNewQuestionsBtn').addEventListener('click', function() {
+        const modal = bootstrap.Modal.getInstance(document.getElementById('interviewQuestionsModal'));
+        modal.hide();
+        setTimeout(() => {
+            generateInterviewQuestions();
+        }, 300);
+    });
+}
+
+// Copy all interview questions to clipboard
+function copyAllInterviewQuestions(questionsData) {
+    const questions = questionsData.questions;
+    const jobTitle = questionsData.jobTitle;
+    const companyContext = questionsData.companyContext;
+    
+    let text = `Interview Questions for ${jobTitle}`;
+    if (companyContext) {
+        text += ` at ${companyContext}`;
+    }
+    text += `\nGenerated on ${new Date(questionsData.generatedAt).toLocaleDateString()}\n\n`;
+    
+    questions.forEach((question, index) => {
+        text += `${index + 1}. ${question}\n\n`;
+    });
+    
+    text += `Generated by Smart Resume Builder AI`;
+    
+    navigator.clipboard.writeText(text).then(() => {
+        showAlert('All questions copied to clipboard!', 'success');
+    }).catch(err => {
+        console.error('Failed to copy to clipboard:', err);
+        showAlert('Failed to copy to clipboard', 'danger');
+    });
+}
+
+// Export interview questions as PDF
+function exportInterviewQuestionsPDF(questionsData) {
+    const questions = questionsData.questions;
+    const jobTitle = questionsData.jobTitle;
+    const companyContext = questionsData.companyContext;
+    
+    // Create HTML content for PDF
+    const pdfContent = `
+        <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px;">
+            <div style="text-align: center; margin-bottom: 30px; border-bottom: 2px solid #007bff; padding-bottom: 20px;">
+                <h1 style="color: #007bff; margin-bottom: 10px;">Interview Questions</h1>
+                <h2 style="color: #666; font-size: 1.2em; margin-bottom: 5px;">${jobTitle}</h2>
+                ${companyContext ? `<h3 style="color: #888; font-size: 1em; margin-bottom: 5px;">${companyContext}</h3>` : ''}
+                <p style="color: #999; font-size: 0.9em;">Generated on ${new Date(questionsData.generatedAt).toLocaleDateString()}</p>
+            </div>
+            
+            <div style="margin-bottom: 30px;">
+                ${questions.map((question, index) => `
+                    <div style="margin-bottom: 25px; padding: 15px; border-left: 4px solid #007bff; background: #f8f9fa;">
+                        <div style="display: flex; align-items: flex-start;">
+                            <span style="background: #007bff; color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; margin-right: 15px; font-weight: bold; flex-shrink: 0;">${index + 1}</span>
+                            <p style="margin: 0; font-size: 1.1em; line-height: 1.5; color: #333;">${question}</p>
+                        </div>
+                        <div style="margin-top: 15px; border-top: 1px solid #ddd; padding-top: 15px;">
+                            <p style="color: #666; font-size: 0.9em; margin: 0;"><strong>Tips:</strong></p>
+                            <ul style="color: #666; font-size: 0.9em; margin: 5px 0 0 0; padding-left: 20px;">
+                                <li>Structure your answer using the STAR method (Situation, Task, Action, Result)</li>
+                                <li>Keep your response between 1-3 minutes</li>
+                                <li>Practice out loud and time yourself</li>
+                            </ul>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+            
+            <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 0.9em;">
+                <p>Generated by Smart Resume Builder AI</p>
+                <p>Good luck with your interview! 🍀</p>
+            </div>
+        </div>
+    `;
+    
+    // Create temporary element for PDF generation
+    const element = document.createElement('div');
+    element.innerHTML = pdfContent;
+    element.style.cssText = 'position: absolute; top: -9999px; left: -9999px;';
+    document.body.appendChild(element);
+    
+    // PDF options
+    const opt = {
+        margin: 0.5,
+        filename: `interview-questions-${jobTitle.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+    };
+    
+    // Generate PDF
+    html2pdf().set(opt).from(element).save().then(() => {
+        document.body.removeChild(element);
+        showAlert('Interview questions exported as PDF!', 'success');
+    }).catch(err => {
+        console.error('PDF generation error:', err);
+        document.body.removeChild(element);
+        showAlert('Failed to export PDF. Please try again.', 'danger');
+    });
+}
+
+// Load and show last generated questions
+function showLastInterviewQuestions() {
+    const lastQuestions = localStorage.getItem('lastInterviewQuestions');
+    if (lastQuestions) {
+        try {
+            const questionsData = JSON.parse(lastQuestions);
+            showInterviewQuestionsModal(questionsData);
+        } catch (error) {
+            console.error('Error loading last questions:', error);
+            showAlert('Error loading previous questions.', 'danger');
+        }
+    } else {
+        showAlert('No previous questions found. Generate new questions first.', 'info');
+    }
+}
+
 // Save current resume to database
 function saveResume() {
     const savedData = localStorage.getItem('resumeData');
@@ -1418,6 +1925,19 @@ document.addEventListener('DOMContentLoaded', function() {
         generateCoverLetterBtn.addEventListener('click', generateCoverLetter);
     }
     
+    const generateInterviewQuestionsBtn = document.getElementById('generateInterviewQuestionsBtn');
+    if (generateInterviewQuestionsBtn) {
+        generateInterviewQuestionsBtn.addEventListener('click', generateInterviewQuestions);
+    }
+    
+    const showLastQuestionsBtn = document.getElementById('showLastQuestionsBtn');
+    if (showLastQuestionsBtn) {
+        showLastQuestionsBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            showLastInterviewQuestions();
+        });
+    }
+    
     const saveResumeBtn = document.getElementById('saveResumeBtn');
     if (saveResumeBtn) {
         saveResumeBtn.addEventListener('click', saveResume);
@@ -1436,6 +1956,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const previewBtn = document.getElementById('previewBtn');
     if (previewBtn) {
         previewBtn.addEventListener('click', function() {
+           
             // Reload current data with current template
             const savedData = localStorage.getItem('resumeData');
             if (savedData) {

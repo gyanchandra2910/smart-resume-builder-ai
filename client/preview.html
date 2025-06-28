@@ -322,6 +322,23 @@
                             <button type="button" class="btn btn-outline-warning me-2" id="generateCoverLetterBtn">
                                 <i class="fas fa-file-alt me-2"></i>Cover Letter
                             </button>
+                            <div class="btn-group me-2" role="group">
+                                <button type="button" class="btn btn-outline-info" id="generateInterviewQuestionsBtn">
+                                    <i class="fas fa-brain me-2"></i>Practice Interview Questions
+                                </button>
+                                <button type="button" class="btn btn-outline-info dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <span class="visually-hidden">Toggle Dropdown</span>
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="#" id="showLastQuestionsBtn">
+                                        <i class="fas fa-history me-2"></i>Show Last Questions
+                                    </a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="/interview-questions.html" target="_blank">
+                                        <i class="fas fa-external-link-alt me-2"></i>Question Demo Page
+                                    </a></li>
+                                </ul>
+                            </div>
                             <button type="button" class="btn btn-outline-danger me-2" id="reviewModeBtn" onclick="openReviewMode()">
                                 <i class="fas fa-user-tie me-2"></i>Review Mode
                             </button>
@@ -500,6 +517,36 @@
             cycleNext();
         });
     </script>
+    
+    <!-- Interview Questions Modal -->
+    <div class="modal fade" id="interviewQuestionsModal" tabindex="-1" aria-labelledby="interviewQuestionsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="interviewQuestionsModalLabel">
+                        <i class="fas fa-brain me-2"></i>AI-Generated Interview Questions
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="interviewQuestionsContent">
+                    <!-- Content will be populated dynamically -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary me-2" id="copyAllQuestionsBtn" style="display: none;">
+                        <i class="fas fa-copy me-2"></i>Copy All Questions
+                    </button>
+                    <button type="button" class="btn btn-outline-primary me-2" id="exportQuestionsBtn" style="display: none;">
+                        <i class="fas fa-file-pdf me-2"></i>Export as PDF
+                    </button>
+                    <button type="button" class="btn btn-primary" id="generateNewQuestionsBtn" style="display: none;">
+                        <i class="fas fa-sync-alt me-2"></i>Generate New Questions
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <script src="auth.js"></script>
 </body>
 </html>

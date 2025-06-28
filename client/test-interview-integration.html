@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interview Questions Integration Test</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col-12">
+                <h2><i class="fas fa-vial me-2"></i>Interview Questions Integration Test</h2>
+                <p class="text-muted">Testing the AI-powered interview questions feature integration.</p>
+                
+                <div class="card">
+                    <div class="card-body">
+                        <h5>Test Configuration</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label for="jobTitle" class="form-label">Job Title</label>
+                                <input type="text" class="form-control" id="jobTitle" value="Senior Software Developer">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="companyContext" class="form-label">Company Context (Optional)</label>
+                                <input type="text" class="form-control" id="companyContext" value="Tech Startup">
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <button class="btn btn-primary" onclick="testInterviewQuestions()">
+                                <i class="fas fa-play me-2"></i>Test Interview Questions API
+                            </button>
+                            <button class="btn btn-outline-secondary ms-2" onclick="clearResults()">
+                                <i class="fas fa-trash me-2"></i>Clear Results
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="results" class="mt-4" style="display: none;">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-chart-line me-2"></i>Test Results</h5>
+                        </div>
+                        <div class="card-body" id="resultsContent">
+                            <!-- Results will be populated here -->
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="questions" class="mt-4" style="display: none;">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-question-circle me-2"></i>Generated Questions</h5>
+                        </div>
+                        <div class="card-body" id="questionsContent">
+                            <!-- Questions will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="test-interview-errors.js"></script>
+    <script>
+        // Test resume data
+        const testResumeData = {
+            fullName: 'John Smith',
+            email: 'john.smith@email.com',
+            phone: '(555) 123-4567',
+            careerObjective: 'Seeking a challenging Software Developer position to utilize my skills in web development and create innovative solutions.',
+            skills: ['JavaScript', 'React', 'Node.js', 'MongoDB', 'Express', 'TypeScript', 'Python'],
+            experience: [
+                {
+                    role: 'Junior Developer',
+                    company: 'Tech Solutions Inc',
+                    duration: '2022-2024',
+                    description: 'Developed responsive web applications using React and Node.js. Collaborated with cross-functional teams to deliver high-quality software solutions.'
+                },
+                {
+                    role: 'Frontend Intern',
+                    company: 'Digital Agency Pro',
+                    duration: '2021-2022',
+                    description: 'Built user interfaces using HTML, CSS, and JavaScript. Gained experience in responsive design and user experience optimization.'
+                }
+            ],
+            education: [
+                {
+                    degree: 'Bachelor of Computer Science',
+                    institution: 'University of Technology',
+                    year: '2022',
+                    gpa: '3.8'
+                }
+            ],
+            projects: [
+                {
+                    name: 'E-commerce Web App',
+                    description: 'Full-stack e-commerce application using MERN stack',
+                    technologies: 'React, Node.js, MongoDB, Express'
+                }
+            ]
+        };
+
+        async function testInterviewQuestions() {
+            const jobTitle = document.getElementById('jobTitle').value;
+            const companyContext = document.getElementById('companyContext').value;
+            
+            const resultsDiv = document.getElementById('results');
+            const resultsContent = document.getElementById('resultsContent');
+            const questionsDiv = document.getElementById('questions');
+            const questionsContent = document.getElementById('questionsContent');
+            
+            // Show loading
+            resultsDiv.style.display = 'block';
+            resultsContent.innerHTML = `
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Generating interview questions...</p>
+                </div>
+            `;
+            
+            questionsDiv.style.display = 'none';
+            
+            try {
+                const requestData = {
+                    resumeData: testResumeData,
+                    jobTitle: jobTitle,
+                    companyContext: companyContext,
+                    experienceLevel: 'mid'
+                };
+                
+                console.log('Sending request:', requestData);
+                
+                const response = await fetch('/api/interview/questions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestData)
+                });
+                
+                const result = await response.json();
+                console.log('Received response:', result);
+                
+                // Display results
+                resultsContent.innerHTML = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Request Details</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>Status:</strong> ${response.status}</li>
+                                <li><strong>Job Title:</strong> ${jobTitle}</li>
+                                <li><strong>Company:</strong> ${companyContext || 'Not specified'}</li>
+                                <li><strong>Candidate:</strong> ${result.data?.candidateName || 'Unknown'}</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Response Details</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>Success:</strong> <span class="badge ${result.success ? 'bg-success' : 'bg-danger'}">${result.success}</span></li>
+                                <li><strong>Question Count:</strong> ${result.data?.questionCount || 0}</li>
+                                <li><strong>AI Model:</strong> ${result.data?.aiModel || 'Unknown'}</li>
+                                <li><strong>Template:</strong> <span class="badge ${result.data?.isTemplate ? 'bg-warning' : 'bg-success'}">${result.data?.isTemplate ? 'Yes' : 'No'}</span></li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <h6>Message</h6>
+                        <div class="alert ${result.success ? 'alert-success' : 'alert-danger'}">
+                            ${result.message}
+                        </div>
+                    </div>
+                `;
+                
+                if (result.success && result.data?.questions) {
+                    displayQuestions(result.data);
+                } else {
+                    questionsDiv.style.display = 'none';
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                resultsContent.innerHTML = `
+                    <div class="alert alert-danger">
+                        <h6>Error</h6>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+                questionsDiv.style.display = 'none';
+            }
+        }
+        
+        function displayQuestions(data) {
+            const questionsDiv = document.getElementById('questions');
+            const questionsContent = document.getElementById('questionsContent');
+            
+            let skillsHTML = '';
+            if (data.highlightedSkills && data.highlightedSkills.length > 0) {
+                skillsHTML = `
+                    <div class="mb-3">
+                        <h6><i class="fas fa-tags me-2"></i>Highlighted Skills</h6>
+                        <div>
+                            ${data.highlightedSkills.map(skill => 
+                                `<span class="badge bg-primary me-1">${skill}</span>`
+                            ).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            const questionsHTML = data.questions.map((question, index) => `
+                <div class="card mb-2">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <h6 class="card-title">Question ${index + 1}</h6>
+                                <p class="card-text">${question}</p>
+                            </div>
+                            <div class="btn-group" role="group">
+                                <button class="btn btn-outline-primary btn-sm" onclick="copyQuestion('${question.replace(/'/g, "\\'")}')">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                                <button class="btn btn-outline-success btn-sm" onclick="practiceQuestion('${question.replace(/'/g, "\\'")}')">
+                                    <i class="fas fa-microphone"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            
+            questionsContent.innerHTML = `
+                ${skillsHTML}
+                
+                <div class="mb-3">
+                    <h6><i class="fas fa-list me-2"></i>Interview Questions for ${data.jobTitle}</h6>
+                    <small class="text-muted">Generated for: ${data.candidateName}</small>
+                </div>
+                
+                ${questionsHTML}
+                
+                <div class="mt-4 text-center">
+                    <button class="btn btn-primary me-2" onclick="copyAllQuestions()">
+                        <i class="fas fa-copy me-2"></i>Copy All Questions
+                    </button>
+                    <button class="btn btn-outline-primary" onclick="exportQuestions()">
+                        <i class="fas fa-download me-2"></i>Export as Text
+                    </button>
+                </div>
+            `;
+            
+            questionsDiv.style.display = 'block';
+            
+            // Store questions for later use
+            window.currentQuestions = data;
+        }
+        
+        function copyQuestion(question) {
+            navigator.clipboard.writeText(question).then(() => {
+                showAlert('Question copied to clipboard!', 'success');
+            });
+        }
+        
+        function practiceQuestion(question) {
+            showAlert(`💡 Practice Tip: Record yourself answering: "${question.substring(0, 50)}..."`, 'info');
+        }
+        
+        function copyAllQuestions() {
+            if (window.currentQuestions && window.currentQuestions.questions) {
+                const allQuestions = window.currentQuestions.questions
+                    .map((q, i) => `${i + 1}. ${q}`)
+                    .join('\n\n');
+                
+                const fullText = `Interview Questions for ${window.currentQuestions.jobTitle}\n` +
+                               `Candidate: ${window.currentQuestions.candidateName}\n` +
+                               `Generated: ${new Date().toLocaleDateString()}\n\n` +
+                               allQuestions;
+                
+                navigator.clipboard.writeText(fullText).then(() => {
+                    showAlert('All questions copied to clipboard!', 'success');
+                });
+            }
+        }
+        
+        function exportQuestions() {
+            if (window.currentQuestions && window.currentQuestions.questions) {
+                const allQuestions = window.currentQuestions.questions
+                    .map((q, i) => `${i + 1}. ${q}`)
+                    .join('\n\n');
+                
+                const fullText = `Interview Questions for ${window.currentQuestions.jobTitle}\n` +
+                               `Candidate: ${window.currentQuestions.candidateName}\n` +
+                               `Generated: ${new Date().toLocaleDateString()}\n\n` +
+                               allQuestions;
+                
+                const blob = new Blob([fullText], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `interview-questions-${window.currentQuestions.jobTitle.replace(/\s+/g, '-').toLowerCase()}.txt`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                showAlert('Questions exported successfully!', 'success');
+            }
+        }
+        
+        function clearResults() {
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('questions').style.display = 'none';
+            window.currentQuestions = null;
+        }
+        
+        function showAlert(message, type = 'info') {
+            // Create alert element
+            let alert = document.getElementById('tempAlert');
+            if (!alert) {
+                alert = document.createElement('div');
+                alert.id = 'tempAlert';
+                alert.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; max-width: 350px;';
+                document.body.appendChild(alert);
+            }
+            
+            alert.className = `alert alert-${type} alert-dismissible fade show`;
+            alert.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
+            `;
+            
+            // Auto dismiss
+            setTimeout(() => {
+                if (alert && alert.parentElement) {
+                    alert.remove();
+                }
+            }, 4000);
+        }
+    </script>
+</body>
+</html>

@@ -6,28 +6,71 @@
 // Helper function to validate resume data for interview questions
 const validateResumeData = (resumeData) => {
     const errors = [];
+    const warnings = [];
     
-    // Check for basic information
-    if (!resumeData.fullName || resumeData.fullName.trim() === '') {
-        errors.push('Full name is required');
+    console.log('🔍 Validating resume data:', {
+        hasResumeData: !!resumeData,
+        dataType: typeof resumeData,
+        keys: resumeData ? Object.keys(resumeData) : []
+    });
+    
+    // Check if resumeData exists
+    if (!resumeData || typeof resumeData !== 'object') {
+        errors.push('Resume data is missing or invalid');
+        return { isValid: false, errors, warnings };
     }
     
-    // Check for experience or education (at least one should be present)
+    // Check for basic information - handle both fullName and name for backward compatibility
+    const userName = resumeData.fullName || resumeData.name;
+    if (!userName || userName.trim() === '') {
+        errors.push('Full name is required (missing both fullName and name fields)');
+    }
+    
+    // Check for experience
     const hasExperience = resumeData.experience && 
         (Array.isArray(resumeData.experience) ? resumeData.experience.length > 0 : Object.keys(resumeData.experience).length > 0);
     
+    // Check for education
     const hasEducation = resumeData.education && 
         (Array.isArray(resumeData.education) ? resumeData.education.length > 0 : Object.keys(resumeData.education).length > 0);
     
+    // Check for career objective
     const hasObjective = resumeData.careerObjective && resumeData.careerObjective.trim() !== '';
     
+    // Check for skills
+    const hasSkills = resumeData.skills && 
+        (Array.isArray(resumeData.skills) ? resumeData.skills.length > 0 : Object.keys(resumeData.skills).length > 0);
+    
+    // At least one major section should be present
     if (!hasExperience && !hasEducation && !hasObjective) {
-        errors.push('At least experience, education, or career objective is required');
+        errors.push('Resume must include at least experience, education, or career objective');
     }
+    
+    // Add warnings for missing optional sections
+    if (!hasExperience) {
+        warnings.push('No work experience found - questions will be more general');
+    }
+    if (!hasSkills) {
+        warnings.push('No skills listed - questions may not be technically specific');
+    }
+    if (!hasObjective) {
+        warnings.push('No career objective - questions may not align with career goals');
+    }
+    
+    console.log('📊 Validation results:', {
+        isValid: errors.length === 0,
+        errorCount: errors.length,
+        warningCount: warnings.length,
+        hasExperience,
+        hasEducation,
+        hasObjective,
+        hasSkills
+    });
     
     return {
         isValid: errors.length === 0,
-        errors
+        errors,
+        warnings
     };
 };
 
@@ -80,7 +123,7 @@ const formatResumeForInterviewPrompt = (resumeData, jobTitle) => {
     }
     
     return {
-        name: resumeData.fullName || 'Candidate',
+        name: resumeData.fullName || resumeData.name || 'Candidate',
         objective: resumeData.careerObjective || '',
         experience: experienceText || 'No work experience listed',
         education: educationText || 'Education background not specified',
@@ -157,7 +200,16 @@ const generateInterviewQuestions = async (req, res) => {
         console.log('🎤 Interview questions generation request received:', {
             hasResumeData: !!req.body.resumeData,
             hasJobTitle: !!req.body.jobTitle,
-            dataKeys: Object.keys(req.body)
+            dataKeys: Object.keys(req.body),
+            resumeDataKeys: req.body.resumeData ? Object.keys(req.body.resumeData) : [],
+            resumeDataSample: req.body.resumeData ? {
+                hasFullName: !!req.body.resumeData.fullName,
+                hasName: !!req.body.resumeData.name,
+                fullNameValue: req.body.resumeData.fullName,
+                nameValue: req.body.resumeData.name,
+                hasExperience: !!req.body.resumeData.experience,
+                hasSkills: !!req.body.resumeData.skills
+            } : null
         });
 
         const { resumeData, jobTitle } = req.body;
@@ -180,8 +232,18 @@ const generateInterviewQuestions = async (req, res) => {
                 success: false,
                 message: 'Resume data validation failed: ' + validation.errors.join(', '),
                 error: 'INVALID_RESUME_DATA',
-                details: validation.errors
+                details: validation.errors,
+                suggestions: [
+                    'Ensure your resume includes a full name',
+                    'Add work experience, education, or career objective',
+                    'Include relevant skills for better question targeting'
+                ]
             });
+        }
+        
+        // Log validation warnings if any
+        if (validation.warnings && validation.warnings.length > 0) {
+            console.log('⚠️ Resume validation warnings:', validation.warnings);
         }
 
         // 3. Check OpenAI configuration
@@ -214,6 +276,14 @@ const generateInterviewQuestions = async (req, res) => {
         try {
             // 6. Call OpenAI API with error handling
             console.log('🤖 Calling OpenAI API for interview questions generation...');
+            console.log('📝 Request body debug:', {
+                hasResumeData: !!resumeData,
+                jobTitle: jobTitle || 'None provided',
+                formattedDataKeys: Object.keys(formattedData),
+                promptLength: prompt.length,
+                apiKeyExists: !!process.env.OPENAI_API_KEY,
+                apiKeyPrefix: process.env.OPENAI_API_KEY ? process.env.OPENAI_API_KEY.substring(0, 10) + '...' : 'NOT SET'
+            });
             
             const { OpenAI } = require('openai');
             const openai = new OpenAI({
@@ -240,6 +310,7 @@ const generateInterviewQuestions = async (req, res) => {
 
             const aiResponse = completion.choices[0].message.content.trim();
             console.log('✅ OpenAI API response received successfully');
+            console.log('📊 Response preview:', aiResponse.substring(0, 200) + '...');
             
             // Parse the JSON response
             try {
@@ -247,15 +318,19 @@ const generateInterviewQuestions = async (req, res) => {
                 if (parsed.questions && Array.isArray(parsed.questions) && parsed.questions.length === 5) {
                     questions = parsed.questions;
                 } else {
-                    throw new Error('Invalid response format from AI');
+                    throw new Error('Invalid response format from AI - expected 5 questions array');
                 }
             } catch (parseError) {
-                console.log('⚠️ Failed to parse AI response, extracting questions manually');
+                console.log('⚠️ Failed to parse AI response as JSON, extracting questions manually');
+                console.log('🔍 Raw AI response:', aiResponse);
+                
                 // Fallback: try to extract questions from response
                 const questionMatches = aiResponse.match(/"([^"]+\?[^"]*)"/g);
                 if (questionMatches && questionMatches.length >= 5) {
                     questions = questionMatches.slice(0, 5).map(q => q.slice(1, -1));
+                    console.log('✅ Extracted questions manually:', questions.length);
                 } else {
+                    console.error('❌ Could not extract valid questions from AI response');
                     throw new Error('Could not extract valid questions from AI response');
                 }
             }
@@ -266,37 +341,78 @@ const generateInterviewQuestions = async (req, res) => {
             });
 
         } catch (openaiError) {
-            // 7. Handle OpenAI-specific errors with fallback
-            console.error('❌ OpenAI API Error:', {
-                error: openaiError.message,
+            // 7. Handle OpenAI-specific errors with detailed logging
+            console.error('❌ OpenAI API Error Details:', {
+                message: openaiError.message,
                 code: openaiError.code,
                 type: openaiError.type,
-                status: openaiError.status
+                status: openaiError.status,
+                response: openaiError.response?.data,
+                stack: openaiError.stack
             });
             
             let errorMessage = 'AI service temporarily unavailable';
+            let errorCode = 'OPENAI_GENERAL_ERROR';
             
             if (openaiError.code === 'insufficient_quota') {
-                errorMessage = 'AI service quota exceeded';
+                errorMessage = 'AI service quota exceeded - please contact support';
+                errorCode = 'OPENAI_QUOTA_EXCEEDED';
             } else if (openaiError.code === 'invalid_api_key') {
-                errorMessage = 'AI service configuration error';
+                errorMessage = 'AI service configuration error - invalid API key';
+                errorCode = 'OPENAI_INVALID_KEY';
             } else if (openaiError.code === 'rate_limit_exceeded') {
-                errorMessage = 'AI service rate limit exceeded, please try again in a moment';
+                errorMessage = 'AI service rate limit exceeded - please try again in a moment';
+                errorCode = 'OPENAI_RATE_LIMIT';
+            } else if (openaiError.status === 401) {
+                errorMessage = 'AI service authentication failed - check API key';
+                errorCode = 'OPENAI_AUTH_FAILED';
+            } else if (openaiError.status === 429) {
+                errorMessage = 'Too many requests to AI service - please wait and try again';
+                errorCode = 'OPENAI_TOO_MANY_REQUESTS';
+            } else if (openaiError.status === 500) {
+                errorMessage = 'AI service internal error - please try again later';
+                errorCode = 'OPENAI_SERVER_ERROR';
+            } else if (openaiError.message.includes('network')) {
+                errorMessage = 'Network error connecting to AI service - check internet connection';
+                errorCode = 'OPENAI_NETWORK_ERROR';
             }
+            
+            // Store error details for frontend
+            this.lastOpenAIError = {
+                message: errorMessage,
+                code: errorCode,
+                originalError: openaiError.message,
+                timestamp: new Date().toISOString()
+            };
             
             // Generate template-based questions as fallback
             console.log('🔄 Generating template-based interview questions as fallback...');
-            questions = generateTemplateInterviewQuestions(formattedData, jobTitle);
-            isTemplate = true;
+            try {
+                questions = generateTemplateInterviewQuestions(formattedData, jobTitle);
+                isTemplate = true;
+                console.log('✅ Template questions generated successfully:', questions.length);
+            } catch (templateError) {
+                console.error('❌ Template generation also failed:', templateError);
+                // Return basic questions as last resort
+                questions = getBasicInterviewQuestions(jobTitle);
+                isTemplate = true;
+            }
         }
 
-        // 8. Return generated interview questions with metadata
+        // 8. Extract skills from resume for highlighting
+        const highlightedSkills = [];
+        if (resumeData.skills && Array.isArray(resumeData.skills)) {
+            highlightedSkills.push(...resumeData.skills.slice(0, 5)); // Top 5 skills
+        }
+        
+        // 9. Return generated interview questions with metadata
         const response = {
             success: true,
             data: {
                 questions,
                 jobTitle: jobTitle || 'General position',
                 candidateName: formattedData.name,
+                highlightedSkills,
                 isTemplate,
                 aiModel: isTemplate ? 'template' : aiModel,
                 generatedAt: new Date().toISOString(),
@@ -317,7 +433,7 @@ const generateInterviewQuestions = async (req, res) => {
         res.json(response);
 
     } catch (error) {
-        // 9. Comprehensive error logging and handling
+        // 10. Comprehensive error logging and handling
         console.error('❌ Critical error in interview questions generation:', {
             message: error.message,
             stack: error.stack,
@@ -375,6 +491,20 @@ const generateTemplateInterviewQuestions = (formattedData, jobTitle) => {
     ];
     
     return templateQuestions;
+};
+
+// Helper function to provide basic interview questions as last resort
+const getBasicInterviewQuestions = (jobTitle) => {
+    const basicQuestions = [
+        "Tell me about yourself and your professional background.",
+        `What interests you most about this ${jobTitle || 'position'}?`,
+        "Describe a challenging project you've worked on and how you overcame obstacles.",
+        "Where do you see yourself in your career in the next 3-5 years?",
+        "Why do you think you'd be a good fit for our team?"
+    ];
+    
+    console.log('📋 Using basic interview questions as final fallback');
+    return basicQuestions;
 };
 
 module.exports = {

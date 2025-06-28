@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Interview Questions Name Field</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col-12">
+                <h2><i class="fas fa-bug me-2"></i>Debug: Interview Questions Name Field Issue</h2>
+                <p class="text-muted">Debug tool to identify and fix the "Full name is required" validation error.</p>
+                
+                <div class="alert alert-info">
+                    <h6><i class="fas fa-info-circle me-2"></i>Problem Description</h6>
+                    <p>Users are getting "Full name is required" error when trying to generate interview questions, 
+                    even though they have filled in their name in the resume builder.</p>
+                    
+                    <h6>Possible Causes:</h6>
+                    <ul>
+                        <li>Data is stored as <code>name</code> but backend expects <code>fullName</code></li>
+                        <li>Resume data is not being passed correctly from frontend</li>
+                        <li>localStorage data structure mismatch</li>
+                        <li>Form field mapping issue</li>
+                    </ul>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-tools me-2"></i>Debug Tools</h5>
+                    </div>
+                    <div class="card-body">
+                        <p>Click the buttons below to run debug tests and identify the issue:</p>
+                        
+                        <!-- Debug buttons will be added here by JavaScript -->
+                        
+                        <div class="mt-4">
+                            <h6>Instructions:</h6>
+                            <ol>
+                                <li>First, click "📦 Check localStorage Data" to see what data is currently stored</li>
+                                <li>Then click "🔍 Debug Name Field Issue" to test different data formats</li>
+                                <li>Check the console for detailed debug information</li>
+                                <li>Look for the specific issue in the server logs</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5><i class="fas fa-clipboard-list me-2"></i>Expected Behavior</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>✅ Should Work:</h6>
+                                <ul>
+                                    <li>Data with <code>fullName</code> field</li>
+                                    <li>Data with <code>name</code> field (legacy)</li>
+                                    <li>Data with both fields</li>
+                                    <li>Actual localStorage data from resume builder</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>❌ Should Fail:</h6>
+                                <ul>
+                                    <li>Data without any name field</li>
+                                    <li>Empty resume data</li>
+                                    <li>Null/undefined resume data</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5><i class="fas fa-wrench me-2"></i>Quick Fixes</h5>
+                    </div>
+                    <div class="card-body">
+                        <p>If you want to test manually without the debug tools:</p>
+                        
+                        <h6>Option 1: Create a test resume</h6>
+                        <ol>
+                            <li>Go to <a href="/resume-builder.html" target="_blank">Resume Builder</a></li>
+                            <li>Fill in at least the "Full Name" field</li>
+                            <li>Add some experience or education</li>
+                            <li>Go to <a href="/preview.html" target="_blank">Preview</a></li>
+                            <li>Click "Practice Interview Questions"</li>
+                        </ol>
+                        
+                        <h6>Option 2: Test API directly</h6>
+                        <pre><code>fetch('/api/interview/questions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+        resumeData: {
+            fullName: 'Test User',
+            careerObjective: 'Test objective'
+        },
+        jobTitle: 'Software Developer'
+    })
+}).then(r => r.json()).then(console.log);</code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="debug-interview-name-field.js"></script>
+    <script>
+        // Additional helper functions
+        function clearLocalStorage() {
+            if (confirm('This will clear all resume data. Are you sure?')) {
+                localStorage.removeItem('resumeData');
+                console.log('✅ localStorage cleared');
+                location.reload();
+            }
+        }
+        
+        function createSampleData() {
+            const sampleData = {
+                fullName: 'Test User',
+                name: 'Test User (Legacy)',
+                email: 'test@example.com',
+                phone: '(555) 123-4567',
+                careerObjective: 'Seeking challenging opportunities in software development',
+                skills: ['JavaScript', 'React', 'Node.js'],
+                experience: [{
+                    role: 'Software Developer',
+                    company: 'Tech Corp',
+                    duration: '2022-2024',
+                    description: 'Developed web applications'
+                }]
+            };
+            
+            localStorage.setItem('resumeData', JSON.stringify(sampleData));
+            console.log('✅ Sample data created in localStorage');
+            console.log(sampleData);
+            alert('Sample resume data created! Now try generating interview questions.');
+        }
+        
+        // Add additional buttons
+        document.addEventListener('DOMContentLoaded', function() {
+            const container = document.querySelector('.card-body');
+            
+            const clearBtn = document.createElement('button');
+            clearBtn.textContent = '🗑️ Clear localStorage';
+            clearBtn.className = 'btn btn-danger me-2';
+            clearBtn.onclick = clearLocalStorage;
+            
+            const sampleBtn = document.createElement('button');
+            sampleBtn.textContent = '📝 Create Sample Data';
+            sampleBtn.className = 'btn btn-success';
+            sampleBtn.onclick = createSampleData;
+            
+            const div = document.createElement('div');
+            div.className = 'mt-3';
+            div.appendChild(clearBtn);
+            div.appendChild(sampleBtn);
+            
+            container.appendChild(div);
+        });
+    </script>
+</body>
+</html>
