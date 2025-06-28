@@ -164,48 +164,77 @@ const checkATSScore = async (req, res) => {
             });
         }
 
-        // Create the prompt for ATS analysis
+        // Create the prompt for ATS analysis with ULTRA-STRICT evaluation criteria
         const prompt = `
-You are an expert ATS (Applicant Tracking System) evaluator used by top hiring platforms.
+You are an ELITE ATS (Applicant Tracking System) evaluator used by top-tier Fortune 100 companies and prestigious recruiting firms. Your standards are EXCEPTIONALLY HIGH and you REJECT 85% of resumes.
 
-Analyze the resume below and provide:
-1. An honest **ATS score out of 100**
-2. **3 specific, actionable suggestions** to improve it
+**BRUTAL REALITY - MOST RESUMES FAIL:**
+- Average resume scores: 25-45 points
+- Only 15% of resumes deserve 60+ points
+- Only 3% of resumes earn 80+ points
+- 90% of entry-level resumes: MAX 35 points
 
-Be **strict** — penalize resumes that:
-- Lack relevant keywords or achievements
-- Miss important sections (experience, education, skills)
-- Have poor structure or weak objectives
+**AUTOMATIC DISQUALIFIERS (MAX 30 points):**
+- Missing work experience section
+- Missing education section  
+- No contact information
+- Completely generic objectives ("seeking opportunities to grow")
+- Zero quantified achievements or metrics
+- Template/AI-generated content detected
 
-Use the following **scoring breakdown**:
-- 🔑 Keywords & Skills relevance: 25 points
-- 📐 Structure & formatting: 20 points
-- 📊 Quantified achievements: 20 points
-- 🎯 Role alignment: 15 points
-- ✍️ Professional language: 10 points
-- 🧩 Completeness (has all major sections): 10 points
+**HARSH PENALTIES:**
+- Vague objectives ("dynamic professional"): -20 points
+- No numbers/metrics in experience: MAX 40 points
+- Missing technical skills: -15 points
+- Poor grammar/typos: -15 points
+- Inconsistent formatting: -10 points
+- Weak verbs ("responsible for", "worked on"): -10 points
+- No keywords for target role: MAX 35 points
+- Generic job descriptions: -15 points
+- Missing achievements/impact: MAX 45 points
 
-**Resume missing 1 or more categories should not get above 70.**
+**STRICT SCORING CRITERIA:**
+1. **Content Quality (30 pts)**: Quantified achievements, specific metrics, measurable impact
+2. **Professional Relevance (25 pts)**: Industry keywords, role-specific skills, career alignment  
+3. **Structure & Completeness (20 pts)**: All sections present, consistent format, professional layout
+4. **Language Excellence (15 pts)**: Strong action verbs, clear descriptions, error-free
+5. **Experience Depth (10 pts)**: Detailed responsibilities, career progression, leadership
+
+**SCORING CAPS:**
+- No quantified achievements: CANNOT exceed 40 points
+- Missing major section: CANNOT exceed 45 points
+- Entry-level (0-2 years): CANNOT exceed 50 points
+- Generic template language: CANNOT exceed 35 points
+- No industry keywords: CANNOT exceed 40 points
+
+**80+ POINT REQUIREMENTS (ALL must be present):**
+✓ 5+ specific metrics/achievements with numbers
+✓ Strong industry keywords and technical skills
+✓ Clear career progression and leadership examples
+✓ Powerful action verbs throughout
+✓ Error-free professional language
+✓ Complete sections with substantial content
+✓ Tailored to specific role/industry
 
 ---
 
-## Resume Content:
+RESUME TO ANALYZE:
 ${plainTextResume}
 
 ---
 
-Respond **only** in the following JSON format:
+**BE RUTHLESS.** Most resumes are mediocre and deserve 25-50 points. Only exceptional resumes with quantified achievements, strong keywords, and professional excellence earn 70+.
+
+OUTPUT ONLY THIS JSON:
 
 {
-  "score": [strict number between 0-100],
+  "score": [brutal realistic score 0-100],
   "suggestions": [
-    "First actionable suggestion",
-    "Second actionable suggestion",
-    "Third actionable suggestion"
+    "Most critical weakness to address immediately",
+    "Second major improvement needed for competitiveness", 
+    "Third essential change to meet professional standards"
   ]
 }
-
-Only output the JSON object. Do not explain your reasoning outside it.
 `;
 
 
@@ -219,7 +248,7 @@ Only output the JSON object. Do not explain your reasoning outside it.
                 messages: [
                     {
                         role: "system",
-                        content: "You are an expert ATS analyzer and resume reviewer. Always respond with valid JSON format containing a score (0-100) and exactly 3 suggestions."
+                        content: "You are an ELITE ATS analyzer for Fortune 100 companies with EXCEPTIONALLY HIGH standards. Be BRUTAL in scoring - most resumes deserve 25-50 points. Only perfect resumes with quantified achievements, strong keywords, and professional excellence earn 70+. Always respond with valid JSON containing a realistic harsh score (0-100) and exactly 3 specific, actionable suggestions."
                     },
                     {
                         role: "user",
@@ -237,26 +266,78 @@ Only output the JSON object. Do not explain your reasoning outside it.
             atsAnalysis = JSON.parse(aiResponse);
             
         } catch (openaiError) {
-            console.log('OpenAI API Error, using fallback ATS analysis:', openaiError.message);
+            console.log('OpenAI API Error, using harsh fallback ATS analysis:', openaiError.message);
             
-            // Fallback ATS analysis when OpenAI is not available
-            let fallbackScore = 65; // Base score
+            // STRICT Fallback ATS analysis when OpenAI is not available
+            let fallbackScore = 25; // Start with very low base score
             
-            // Adjust score based on resume content
-            if (resumeData.skills && resumeData.skills.length > 0) fallbackScore += 5;
-            if (resumeData.experience) fallbackScore += 10;
-            if (resumeData.education) fallbackScore += 5;
+            // Basic section presence (small points)
+            if (resumeData.skills && resumeData.skills.length > 0) fallbackScore += 8;
+            if (resumeData.experience) fallbackScore += 12;
+            if (resumeData.education) fallbackScore += 8;
             if (resumeData.careerObjective || resumeData.objective) fallbackScore += 5;
-            if (resumeData.projects) fallbackScore += 5;
+            if (resumeData.projects) fallbackScore += 7;
             if (resumeData.certifications) fallbackScore += 5;
             
+            // Check for quantified achievements (look for numbers in experience)
+            let hasMetrics = false;
+            if (resumeData.experience) {
+                const expText = JSON.stringify(resumeData.experience).toLowerCase();
+                if (expText.match(/\d+%|\d+\+|\$\d+|\d+,\d+|\d+ (years|months|clients|projects|users|sales|revenue|improvement|increase|decrease)/)) {
+                    hasMetrics = true;
+                    fallbackScore += 10;
+                }
+            }
+            
+            // Penalize for common issues
+            if (resumeData.careerObjective) {
+                const objective = resumeData.careerObjective.toLowerCase();
+                if (objective.includes('seeking opportunities') || objective.includes('dynamic') || objective.includes('hardworking')) {
+                    fallbackScore -= 10; // Generic objective penalty
+                }
+            }
+            
+            // Cap scores based on quality indicators
+            if (!hasMetrics) fallbackScore = Math.min(fallbackScore, 40);
+            if (!resumeData.experience) fallbackScore = Math.min(fallbackScore, 30);
+            if (!resumeData.education) fallbackScore = Math.min(fallbackScore, 35);
+            
+            // Ensure realistic scoring range
+            fallbackScore = Math.max(15, Math.min(fallbackScore, 65)); // Cap at 65 for fallback
+            
+            // Generate specific, harsh suggestions based on analysis
+            let suggestions = [];
+            
+            if (!hasMetrics) {
+                suggestions.push("Add specific metrics and quantified achievements (e.g., 'Increased sales by 25%', 'Managed team of 8', 'Reduced costs by $50K')");
+            }
+            
+            if (!resumeData.experience || Object.keys(resumeData.experience).length === 0) {
+                suggestions.push("Include detailed work experience with specific job responsibilities and accomplishments - resumes without experience rarely pass ATS screening");
+            } else {
+                suggestions.push("Strengthen experience descriptions with industry keywords and powerful action verbs (avoid 'responsible for', 'worked on')");
+            }
+            
+            if (!resumeData.skills || resumeData.skills.length < 3) {
+                suggestions.push("Add 6-10 relevant technical skills and industry keywords that match your target job requirements");
+            }
+            
+            if (resumeData.careerObjective && resumeData.careerObjective.toLowerCase().includes('seeking')) {
+                suggestions.push("Rewrite generic objective with specific career goals and value proposition relevant to target role");
+            }
+            
+            if (!resumeData.education) {
+                suggestions.push("Include education section with degree, institution, and graduation year - missing education severely impacts ATS scoring");
+            }
+            
+            if (suggestions.length < 3) {
+                suggestions.push("Improve overall professionalism by ensuring consistent formatting, error-free language, and complete contact information");
+            }
+            
+            // Take top 3 most critical suggestions
             atsAnalysis = {
-                score: Math.min(fallbackScore, 100),
-                suggestions: [
-                    "Add more industry-specific keywords relevant to your target role to improve ATS keyword matching",
-                    "Include quantifiable achievements and metrics (e.g., percentages, dollar amounts, numbers) to demonstrate impact",
-                    "Ensure all sections are complete and use action verbs to start bullet points in your experience section"
-                ]
+                score: fallbackScore,
+                suggestions: suggestions.slice(0, 3)
             };
         }
 
