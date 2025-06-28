@@ -87,6 +87,10 @@ jspm_packages/
 ehthumbs.db
 Thumbs.db
 
+# Production builds
+build/
+dist/
+
 # IDE files
 .vscode/
 .idea/
@@ -97,3 +101,7 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+
+# Documentation (development only)
+docs/
+*.md.backup
