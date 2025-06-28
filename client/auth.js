@@ -1,5 +1,8 @@
 // Authentication JavaScript
 document.addEventListener('DOMContentLoaded', function() {
+    // Check authentication state and update navbar after a small delay to ensure elements are ready
+    setTimeout(checkAuthenticationState, 100);
+    
     // Toggle password visibility
     const togglePassword = document.getElementById('togglePassword');
     const toggleConfirmPassword = document.getElementById('toggleConfirmPassword');
@@ -257,3 +260,44 @@ document.addEventListener('DOMContentLoaded', function() {
         window.location.href = '/resume-builder.html';
     }
 });
+
+// Authentication state management for navbar
+function checkAuthenticationState() {
+    const token = localStorage.getItem('token');
+    const user = localStorage.getItem('user');
+    
+    if (token && user) {
+        // User is logged in
+        const userData = JSON.parse(user);
+        const loginNav = document.getElementById('loginNav');
+        const registerNav = document.getElementById('registerNav');
+        const userNav = document.getElementById('userNav');
+        const userName = document.getElementById('userName');
+        
+        if (loginNav) loginNav.style.display = 'none';
+        if (registerNav) registerNav.style.display = 'none';
+        if (userNav) userNav.style.display = 'block';
+        if (userName) userName.textContent = userData.name;
+        
+        // Add logout functionality
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                localStorage.removeItem('resumeData'); // Clear resume data too
+                window.location.href = '/';
+            });
+        }
+    } else {
+        // User is not logged in - show login/register links
+        const loginNav = document.getElementById('loginNav');
+        const registerNav = document.getElementById('registerNav');
+        const userNav = document.getElementById('userNav');
+        
+        if (loginNav) loginNav.style.display = 'block';
+        if (registerNav) registerNav.style.display = 'block';
+        if (userNav) userNav.style.display = 'none';
+    }
+}

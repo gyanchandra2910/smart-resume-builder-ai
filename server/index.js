@@ -10,6 +10,7 @@ const app = express();
 const authRoutes = require('./routes/auth');
 const resumeRoutes = require('./routes/resume');
 const aiRoutes = require('./routes/ai');
+const atsRoutes = require('./routes/ats');
 
 // Middleware
 app.use(cors());
@@ -23,6 +24,7 @@ app.use(express.static(path.join(__dirname, '../client')));
 app.use('/api/auth', authRoutes);
 app.use('/api/resume', resumeRoutes);
 app.use('/api/resume', aiRoutes);
+app.use('/api/resume', atsRoutes);
 
 // Serve specific HTML files
 app.get('/login.html', (req, res) => {
@@ -39,6 +41,10 @@ app.get('/resume-builder.html', (req, res) => {
 
 app.get('/preview.html', (req, res) => {
     res.sendFile(path.join(__dirname, '../client/preview.html'));
+});
+
+app.get('/ats-check.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../client/ats-check.html'));
 });
 
 // Serve frontend for root route

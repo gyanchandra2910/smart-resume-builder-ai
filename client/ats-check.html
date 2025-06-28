@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ATS Score Check - Smart Resume Builder AI</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .ats-hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 60px 0;
+        }
+        
+        .feature-card {
+            transition: transform 0.3s ease;
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .score-circle {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+            font-size: 2rem;
+            font-weight: bold;
+            color: white;
+        }
+        
+        .ats-instructions {
+            background: #f8f9fa;
+            border-left: 4px solid #007bff;
+            padding: 20px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Standard Navbar Template for Smart Resume Builder AI -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="/">
+                <i class="fas fa-file-alt me-2"></i>Smart Resume Builder AI
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" 
+                    aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/" id="nav-home">
+                            <i class="fas fa-home me-1"></i>Home
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/resume-builder.html" id="nav-builder">
+                            <i class="fas fa-edit me-1"></i>Build Resume
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/preview.html" id="nav-preview">
+                            <i class="fas fa-eye me-1"></i>Preview
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/ats-check.html" id="nav-ats">
+                            <i class="fas fa-chart-line me-1"></i>ATS Check
+                        </a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item" id="loginNav">
+                        <a class="nav-link" href="/login.html" id="nav-login">
+                            <i class="fas fa-sign-in-alt me-1"></i>Login
+                        </a>
+                    </li>
+                    <li class="nav-item" id="registerNav">
+                        <a class="nav-link" href="/register.html" id="nav-register">
+                            <i class="fas fa-user-plus me-1"></i>Register
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown" id="userNav" style="display: none;">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" 
+                           data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-user me-1"></i><span id="userName">User</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="/resume-builder.html">
+                                <i class="fas fa-edit me-2"></i>My Resumes
+                            </a></li>
+                            <li><a class="dropdown-item" href="/preview.html">
+                                <i class="fas fa-eye me-2"></i>Preview Resume
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" id="logoutBtn">
+                                <i class="fas fa-sign-out-alt me-2"></i>Logout
+                            </a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="ats-hero">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-8">
+                    <h1 class="display-5 fw-bold mb-3">ATS Compatibility Check</h1>
+                    <p class="lead mb-4">Get your resume analyzed for Applicant Tracking System (ATS) compatibility and receive specific suggestions to improve your chances of getting through initial screening.</p>
+                    <div class="d-flex gap-3">
+                        <a href="/resume-builder.html" class="btn btn-light btn-lg">
+                            <i class="fas fa-edit me-2"></i>Build Resume
+                        </a>
+                        <button class="btn btn-outline-light btn-lg" onclick="scrollToCheck()">
+                            <i class="fas fa-search me-2"></i>Check Score
+                        </button>
+                    </div>
+                </div>
+                <div class="col-lg-4 text-center">
+                    <div class="score-circle bg-light text-primary">
+                        <div>
+                            <i class="fas fa-chart-line fa-2x mb-2"></i>
+                            <div class="small">ATS Score</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="py-5">
+        <div class="container">
+            <div class="row text-center mb-5">
+                <div class="col-lg-8 mx-auto">
+                    <h2 class="h3 mb-3">Why Check Your ATS Score?</h2>
+                    <p class="text-muted">Over 98% of Fortune 500 companies use ATS to filter resumes. Make sure yours passes the test.</p>
+                </div>
+            </div>
+            
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="card feature-card h-100 text-center p-4">
+                        <div class="card-body">
+                            <i class="fas fa-robot fa-3x text-primary mb-3"></i>
+                            <h5 class="card-title">AI-Powered Analysis</h5>
+                            <p class="card-text">Our AI analyzes your resume against ATS algorithms and industry standards to provide accurate scoring.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="card feature-card h-100 text-center p-4">
+                        <div class="card-body">
+                            <i class="fas fa-lightbulb fa-3x text-warning mb-3"></i>
+                            <h5 class="card-title">Actionable Suggestions</h5>
+                            <p class="card-text">Get specific, actionable recommendations to improve keyword usage, formatting, and overall ATS compatibility.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="card feature-card h-100 text-center p-4">
+                        <div class="card-body">
+                            <i class="fas fa-chart-line fa-3x text-success mb-3"></i>
+                            <h5 class="card-title">Instant Results</h5>
+                            <p class="card-text">Get your ATS compatibility score and improvement suggestions in seconds, not days.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ATS Check Section -->
+    <section id="ats-check-section" class="py-5 bg-light">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8 mx-auto">
+                    <div class="card border-0 shadow">
+                        <div class="card-header bg-primary text-white">
+                            <h4 class="card-title mb-0">
+                                <i class="fas fa-search me-2"></i>Check Your Resume's ATS Score
+                            </h4>
+                        </div>
+                        <div class="card-body p-4">
+                            <div class="ats-instructions">
+                                <h6><i class="fas fa-info-circle me-2"></i>How it works:</h6>
+                                <ol class="mb-0">
+                                    <li>Either paste your resume content below or use the data from your resume builder</li>
+                                    <li>Click "Analyze Resume" to get your ATS compatibility score</li>
+                                    <li>Review the specific suggestions to improve your resume</li>
+                                    <li>Make the recommended changes and re-check your score</li>
+                                </ol>
+                            </div>
+
+                            <!-- Resume Input Methods -->
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6">
+                                    <button class="btn btn-outline-primary w-100" id="loadFromBuilderBtn">
+                                        <i class="fas fa-download me-2"></i>Load from Resume Builder
+                                    </button>
+                                </div>
+                                <div class="col-md-6">
+                                    <button class="btn btn-outline-secondary w-100" id="pasteResumeBtn">
+                                        <i class="fas fa-paste me-2"></i>Paste Resume Content
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Resume Text Area (initially hidden) -->
+                            <div id="resumeTextArea" class="mb-4" style="display: none;">
+                                <label for="resumeContent" class="form-label">Resume Content</label>
+                                <textarea id="resumeContent" class="form-control" rows="10" 
+                                          placeholder="Paste your resume content here..."></textarea>
+                                <div class="form-text">Paste the text content of your resume here for analysis.</div>
+                            </div>
+
+                            <!-- Current Resume Data Display -->
+                            <div id="currentResumeData" class="mb-4">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    <strong>Ready to analyze:</strong> Click "Load from Resume Builder" to use your current resume data, or "Paste Resume Content" to analyze different content.
+                                </div>
+                            </div>
+
+                            <!-- Analysis Button -->
+                            <div class="text-center mb-4">
+                                <button class="btn btn-primary btn-lg px-5" id="analyzeResumeBtn" disabled>
+                                    <i class="fas fa-chart-line me-2"></i>Analyze Resume
+                                </button>
+                            </div>
+
+                            <!-- Results Container -->
+                            <div id="atsResults"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Tips Section -->
+    <section class="py-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-10 mx-auto">
+                    <h3 class="text-center mb-4">Quick ATS Optimization Tips</h3>
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <div class="d-flex">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-check-circle text-success fa-lg"></i>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h6>Use Standard Section Headers</h6>
+                                    <p class="text-muted small mb-0">Use conventional headers like "Experience", "Education", "Skills" instead of creative alternatives.</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="d-flex">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-check-circle text-success fa-lg"></i>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h6>Include Relevant Keywords</h6>
+                                    <p class="text-muted small mb-0">Match keywords from the job description naturally throughout your resume.</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="d-flex">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-check-circle text-success fa-lg"></i>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h6>Use Simple Formatting</h6>
+                                    <p class="text-muted small mb-0">Avoid complex layouts, graphics, and unusual fonts that ATS can't parse.</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="d-flex">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-check-circle text-success fa-lg"></i>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h6>Quantify Achievements</h6>
+                                    <p class="text-muted small mb-0">Include numbers, percentages, and metrics to demonstrate impact.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="ats.js"></script>
+    <script>
+        let currentResumeData = null;
+
+        // Function to scroll to check section
+        function scrollToCheck() {
+            document.getElementById('ats-check-section').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Load data from resume builder (localStorage)
+        document.getElementById('loadFromBuilderBtn').addEventListener('click', function() {
+            const savedData = localStorage.getItem('resumeData');
+            if (savedData) {
+                try {
+                    currentResumeData = JSON.parse(savedData);
+                    displayCurrentResumeData(currentResumeData);
+                    document.getElementById('analyzeResumeBtn').disabled = false;
+                    hideTextArea();
+                } catch (error) {
+                    showATSAlert('Error loading resume data from builder', 'danger');
+                }
+            } else {
+                showATSAlert('No resume data found. Please build a resume first.', 'warning');
+            }
+        });
+
+        // Show text area for pasting content
+        document.getElementById('pasteResumeBtn').addEventListener('click', function() {
+            showTextArea();
+            hideCurrentResumeData();
+            document.getElementById('analyzeResumeBtn').disabled = false;
+        });
+
+        // Analyze resume button
+        document.getElementById('analyzeResumeBtn').addEventListener('click', function() {
+            if (currentResumeData) {
+                // Use data from resume builder
+                analyzeResumeData(currentResumeData);
+            } else {
+                // Use pasted text content
+                const textContent = document.getElementById('resumeContent').value.trim();
+                if (!textContent) {
+                    showATSAlert('Please enter resume content to analyze', 'warning');
+                    return;
+                }
+                
+                // Convert text to simple resume data object
+                const resumeData = {
+                    fullName: 'Resume Content',
+                    email: 'analysis@resume.com',
+                    rawContent: textContent
+                };
+                
+                analyzeResumeData(resumeData);
+            }
+        });
+
+        // Function to show text area
+        function showTextArea() {
+            document.getElementById('resumeTextArea').style.display = 'block';
+        }
+
+        // Function to hide text area
+        function hideTextArea() {
+            document.getElementById('resumeTextArea').style.display = 'none';
+        }
+
+        // Function to show current resume data
+        function displayCurrentResumeData(data) {
+            const container = document.getElementById('currentResumeData');
+            const sections = [];
+            
+            if (data.fullName || data.name) sections.push('Personal Info');
+            if (data.careerObjective || data.objective) sections.push('Objective');
+            if (data.skills && data.skills.length > 0) sections.push('Skills');
+            if (data.experience) sections.push('Experience');
+            if (data.education) sections.push('Education');
+            if (data.projects) sections.push('Projects');
+            if (data.certifications) sections.push('Certifications');
+            
+            container.innerHTML = `
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <strong>Resume data loaded:</strong> ${data.fullName || data.name || 'Resume'} 
+                    <br><small>Sections found: ${sections.join(', ')}</small>
+                </div>
+            `;
+        }
+
+        // Function to hide current resume data
+        function hideCurrentResumeData() {
+            document.getElementById('currentResumeData').innerHTML = `
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Manual input mode:</strong> Enter your resume content in the text area below.
+                </div>
+            `;
+            currentResumeData = null;
+        }
+
+        // Function to analyze resume data
+        async function analyzeResumeData(resumeData) {
+            try {
+                const button = document.getElementById('analyzeResumeBtn');
+                const originalText = button.innerHTML;
+                button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Analyzing...';
+                button.disabled = true;
+
+                const response = await fetch('/api/resume/ats-check', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(resumeData)
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.message || 'Analysis failed');
+                }
+
+                if (result.success) {
+                    displayATSResults(result.data);
+                } else {
+                    throw new Error(result.message || 'Analysis was not successful');
+                }
+
+            } catch (error) {
+                console.error('Analysis error:', error);
+                showATSError(error.message);
+            } finally {
+                const button = document.getElementById('analyzeResumeBtn');
+                button.innerHTML = '<i class="fas fa-chart-line me-2"></i>Analyze Resume';
+                button.disabled = false;
+            }
+        }
+
+        // Function to display ATS results (reuse from ats.js)
+        function displayATSResults(data) {
+            if (window.atsChecker && window.atsChecker.displayATSResults) {
+                window.atsChecker.displayATSResults(data);
+            } else {
+                // Fallback basic display
+                const resultsContainer = document.getElementById('atsResults');
+                resultsContainer.innerHTML = `
+                    <div class="alert alert-success">
+                        <h5>ATS Score: ${data.score}/100</h5>
+                        <h6>Suggestions:</h6>
+                        <ul>
+                            ${data.suggestions.map(s => `<li>${s}</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+            }
+        }
+
+        // Auto-load data if coming from resume builder
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('autoload') === 'true') {
+                document.getElementById('loadFromBuilderBtn').click();
+            }
+        });
+    </script>
+    <script src="auth.js"></script>
+</body>
+</html>
