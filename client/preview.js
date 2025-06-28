@@ -312,6 +312,165 @@ function renderCertificationsSection(certifications, template = 'classic') {
     `).join('');
 }
 
+// Function to load resume data from localStorage or provide demo data
+function loadResumeData() {
+    // Check for URL parameters first (for preview links from saved resumes)
+    const urlParams = new URLSearchParams(window.location.search);
+    const resumeId = urlParams.get('id');
+    
+    if (resumeId) {
+        // Load specific resume from server
+        loadResumeFromServer(resumeId);
+        return;
+    }
+    
+    // Try to load from localStorage
+    const savedData = localStorage.getItem('resumeData');
+    
+    if (savedData) {
+        try {
+            const data = JSON.parse(savedData);
+            renderResumePreview(data);
+            return;
+        } catch (error) {
+            console.error('Error parsing saved resume data:', error);
+        }
+    }
+    
+    // If no data found, show demo data or empty state
+    loadDemoData();
+}
+
+// Function to load resume from server by ID
+function loadResumeFromServer(resumeId) {
+    const previewContainer = document.getElementById('resumePreview');
+    
+    // Show loading state
+    previewContainer.innerHTML = `
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-3 text-muted">Loading resume...</p>
+        </div>
+    `;
+    
+    fetch(`/api/resume/${resumeId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                renderResumePreview(data.data);
+                showAlert('Resume loaded successfully!', 'success');
+            } else {
+                showAlert('Error loading resume: ' + data.message, 'danger');
+                loadDemoData();
+            }
+        })
+        .catch(error => {
+            console.error('Error loading resume from server:', error);
+            showAlert('Error loading resume. Showing demo data instead.', 'warning');
+            loadDemoData();
+        });
+}
+
+// Function to load demo data
+function loadDemoData() {
+    const demoData = {
+        fullName: "John Doe",
+        name: "John Doe",
+        email: "john.doe@example.com",
+        phone: "+1-555-0123",
+        address: "123 Main Street, City, State 12345",
+        linkedin: "https://linkedin.com/in/johndoe",
+        github: "https://github.com/johndoe",
+        portfolio: "https://johndoe.com",
+        roleAppliedFor: "Software Developer",
+        skills: [
+            "JavaScript",
+            "React",
+            "Node.js",
+            "MongoDB",
+            "Python",
+            "HTML/CSS"
+        ],
+        careerObjective: "Seeking a challenging Software Developer position to leverage my expertise in full-stack development and contribute to innovative projects while growing professionally.",
+        socialLinks: {
+            linkedin: "https://linkedin.com/in/johndoe",
+            github: "https://github.com/johndoe",
+            portfolio: "https://johndoe.com"
+        },
+        education: [
+            {
+                degree: "Bachelor of Science in Computer Science",
+                college: "University of Technology",
+                year: "2023"
+            }
+        ],
+        experience: [
+            {
+                company: "Tech Innovations Inc.",
+                role: "Junior Software Developer",
+                duration: "2023 - Present",
+                description: "Developed and maintained web applications using React and Node.js. Collaborated with cross-functional teams to deliver high-quality software solutions."
+            }
+        ],
+        projects: [
+            {
+                title: "E-commerce Platform",
+                techStack: "React, Node.js, MongoDB, Stripe",
+                description: "Built a full-stack e-commerce platform with user authentication, payment processing, and admin dashboard.",
+                githubLink: "https://github.com/johndoe/ecommerce-platform"
+            }
+        ],
+        certifications: [
+            {
+                name: "AWS Certified Developer",
+                issuer: "Amazon Web Services",
+                date: "2024"
+            }
+        ]
+    };
+    
+    renderResumePreview(demoData);
+}
+
+// Function to show alert messages
+function showAlert(message, type = 'info') {
+    // Remove any existing alerts
+    const existingAlert = document.querySelector('.preview-alert');
+    if (existingAlert) {
+        existingAlert.remove();
+    }
+
+    // Create alert element
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show preview-alert`;
+    alertDiv.style.cssText = `
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 9999;
+        min-width: 300px;
+        text-align: center;
+    `;
+    
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+    
+    // Add to document
+    document.body.appendChild(alertDiv);
+
+    // Auto-remove after 4 seconds
+    setTimeout(() => {
+        if (alertDiv && alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 4000);
+}
+
 // Template switching functionality
 function switchTemplate(templateName) {
     saveSelectedTemplate(templateName);
@@ -388,109 +547,201 @@ function downloadPDF() {
     });
 }
 
-// Function to load resume data from localStorage or API
-function loadResumeData() {
-    // Try to get data from localStorage first
+// Share resume functionality
+function shareResume() {
     const savedData = localStorage.getItem('resumeData');
-    if (savedData) {
-        try {
-            const data = JSON.parse(savedData);
-            renderResumePreview(data);
-            return;
-        } catch (error) {
-            console.error('Error parsing saved resume data:', error);
-        }
+    if (!savedData) {
+        showAlert('No resume data found. Please create or load a resume first.', 'warning');
+        return;
     }
 
-    // If no saved data, show placeholder or fetch from API
-    const placeholderData = {
-        fullName: 'Your Name',
-        email: 'your.email@example.com',
-        phone: '+1-555-0123',
-        roleAppliedFor: 'Your Desired Role',
-        careerObjective: 'Your career objective will appear here...',
-        skills: ['Skill 1', 'Skill 2', 'Skill 3'],
-        education: [{
-            degree: 'Your Degree',
-            college: 'Your College/University',
-            year: '2024'
-        }],
-        experience: [{
-            company: 'Company Name',
-            role: 'Your Role',
-            duration: 'Start Date - End Date',
-            description: 'Description of your role and achievements...'
-        }]
-    };
+    const shareBtn = document.getElementById('shareBtn');
+    const originalText = shareBtn ? shareBtn.innerHTML : '';
     
-    renderResumePreview(placeholderData);
-}
+    if (shareBtn) {
+        shareBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating Link...';
+        shareBtn.disabled = true;
+    }
 
-// Function to save current form data and refresh preview
-function saveAndPreview() {
-    // Get form data (if form exists)
-    const form = document.getElementById('resumeForm');
-    if (form) {
-        // Collect form data similar to the main script.js
-        const formData = new FormData(form);
-        const resumeData = {};
-
-        // Process basic form data
-        for (let [key, value] of formData.entries()) {
-            if (!key.includes('[')) {
-                resumeData[key] = value;
-            }
-        }
-
-        // Add skills array if available
-        if (window.skillsArray) {
-            resumeData.skills = window.skillsArray;
-        }
-
-        // Save to localStorage
-        localStorage.setItem('resumeData', JSON.stringify(resumeData));
+    try {
+        const data = JSON.parse(savedData);
         
-        // Render preview
-        renderResumePreview(resumeData);
+        // Create resume via API
+        fetch('/api/resume/input', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                const shareableUrl = `${window.location.origin}/resume/${result.data.id}`;
+                
+                // Copy to clipboard and show modal
+                navigator.clipboard.writeText(shareableUrl).then(() => {
+                    showShareModal(shareableUrl);
+                }).catch(() => {
+                    // Fallback if clipboard API is not available
+                    showShareModal(shareableUrl);
+                });
+                
+            } else {
+                showAlert('Error creating shareable link: ' + result.message, 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error creating shareable link:', error);
+            showAlert('Error creating shareable link. Please try again.', 'danger');
+        })
+        .finally(() => {
+            if (shareBtn) {
+                shareBtn.innerHTML = originalText;
+                shareBtn.disabled = false;
+            }
+        });
+        
+    } catch (error) {
+        console.error('Error parsing resume data:', error);
+        showAlert('Error processing resume data.', 'danger');
+        
+        if (shareBtn) {
+            shareBtn.innerHTML = originalText;
+            shareBtn.disabled = false;
+        }
     }
 }
 
-// Alert function for user feedback (if not already defined)
-function showAlert(message, type = 'info') {
-    // Remove any existing alerts
-    const existingAlert = document.querySelector('.preview-alert');
-    if (existingAlert) {
-        existingAlert.remove();
+// Show share modal with the shareable URL
+function showShareModal(url) {
+    // Remove existing modal if any
+    const existingModal = document.getElementById('shareModal');
+    if (existingModal) {
+        existingModal.remove();
     }
 
-    // Create alert element
-    const alertDiv = document.createElement('div');
-    alertDiv.className = `alert alert-${type} alert-dismissible fade show preview-alert`;
-    alertDiv.style.position = 'fixed';
-    alertDiv.style.top = '20px';
-    alertDiv.style.right = '20px';
-    alertDiv.style.zIndex = '9999';
-    alertDiv.style.minWidth = '300px';
-    alertDiv.innerHTML = `
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    // Create modal HTML
+    const modalHTML = `
+        <div class="modal fade" id="shareModal" tabindex="-1" aria-labelledby="shareModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title" id="shareModalLabel">
+                            <i class="fas fa-share-alt me-2"></i>Share Your Resume
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle me-2"></i>
+                            <strong>Success!</strong> Your resume is now publicly accessible.
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="shareUrl" class="form-label fw-bold">Shareable Link:</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="shareUrl" value="${url}" readonly>
+                                <button class="btn btn-outline-primary" type="button" onclick="copyToClipboard()">
+                                    <i class="fas fa-copy me-1"></i>Copy
+                                </button>
+                            </div>
+                            <small class="text-muted">This link can be shared with employers, colleagues, or anyone you want to view your resume.</small>
+                        </div>
+                        
+                        <div class="row text-center mt-4">
+                            <div class="col-md-4 mb-3">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <i class="fas fa-eye fa-2x text-primary mb-2"></i>
+                                        <h6 class="card-title">Public View</h6>
+                                        <p class="card-text small">Anyone with this link can view your resume in a clean, professional format.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <i class="fas fa-download fa-2x text-success mb-2"></i>
+                                        <h6 class="card-title">PDF Download</h6>
+                                        <p class="card-text small">Viewers can download your resume as a PDF directly from the shared page.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <i class="fas fa-mobile-alt fa-2x text-info mb-2"></i>
+                                        <h6 class="card-title">Mobile Friendly</h6>
+                                        <p class="card-text small">Your resume looks great on all devices - desktop, tablet, and mobile.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-info mt-3">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Note:</strong> This link will remain active permanently. You can share it on your LinkedIn profile, in job applications, or anywhere else you need to showcase your resume.
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <a href="${url}" target="_blank" class="btn btn-primary">
+                            <i class="fas fa-external-link-alt me-2"></i>Preview Shared Resume
+                        </a>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     `;
 
-    // Add to document
-    document.body.appendChild(alertDiv);
+    // Add modal to document
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
 
-    // Auto-remove after 5 seconds
-    setTimeout(() => {
-        if (alertDiv && alertDiv.parentNode) {
-            alertDiv.remove();
-        }
-    }, 5000);
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('shareModal'));
+    modal.show();
+
+    // Clean up modal when hidden
+    document.getElementById('shareModal').addEventListener('hidden.bs.modal', function () {
+        this.remove();
+    });
+}
+
+// Copy URL to clipboard
+function copyToClipboard() {
+    const urlInput = document.getElementById('shareUrl');
+    urlInput.select();
+    urlInput.setSelectionRange(0, 99999); // For mobile devices
+
+    try {
+        navigator.clipboard.writeText(urlInput.value).then(() => {
+            const copyBtn = event.target.closest('button');
+            const originalHTML = copyBtn.innerHTML;
+            copyBtn.innerHTML = '<i class="fas fa-check me-1"></i>Copied!';
+            copyBtn.classList.remove('btn-outline-primary');
+            copyBtn.classList.add('btn-success');
+            
+            setTimeout(() => {
+                copyBtn.innerHTML = originalHTML;
+                copyBtn.classList.remove('btn-success');
+                copyBtn.classList.add('btn-outline-primary');
+            }, 2000);
+            
+            showAlert('Link copied to clipboard!', 'success');
+        });
+    } catch (err) {
+        // Fallback for older browsers
+        document.execCommand('copy');
+        showAlert('Link copied to clipboard!', 'success');
+    }
 }
 
 // Initialize preview when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
     // Set initial template selection from localStorage
     const savedTemplate = getCurrentTemplate();
+    
     const templateRadio = document.getElementById(`template-${savedTemplate}`);
     if (templateRadio) {
         templateRadio.checked = true;
@@ -513,6 +764,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const downloadBtn = document.getElementById('downloadPdfBtn');
     if (downloadBtn) {
         downloadBtn.addEventListener('click', downloadPDF);
+    }
+    
+    const shareBtn = document.getElementById('shareBtn');
+    if (shareBtn) {
+        shareBtn.addEventListener('click', shareResume);
     }
     
     const previewBtn = document.getElementById('previewBtn');
@@ -545,6 +801,9 @@ if (typeof module !== 'undefined' && module.exports) {
         saveAndPreview,
         switchTemplate,
         getCurrentTemplate,
-        saveSelectedTemplate
+        saveSelectedTemplate,
+        shareResume,
+        showShareModal,
+        copyToClipboard
     };
 }
