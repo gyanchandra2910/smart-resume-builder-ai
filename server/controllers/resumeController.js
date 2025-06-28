@@ -271,6 +271,110 @@ const deleteResume = async (req, res) => {
     }
 };
 
+// Generate cover letter using OpenAI
+const generateCoverLetter = async (req, res) => {
+    try {
+        const { role, resumeSummary, experience, skills, companyName } = req.body;
+
+        if (!role) {
+            return res.status(400).json({
+                success: false,
+                message: 'Role/position is required for cover letter generation'
+            });
+        }
+
+        // Check if OpenAI is configured
+        if (!process.env.OPENAI_API_KEY) {
+            return res.status(500).json({
+                success: false,
+                message: 'OpenAI API key not configured'
+            });
+        }
+
+        const { OpenAI } = require('openai');
+        const openai = new OpenAI({
+            apiKey: process.env.OPENAI_API_KEY
+        });
+
+        // Prepare experience summary
+        const experienceText = experience && experience.length > 0 
+            ? experience.map(exp => `${exp.role} at ${exp.company}: ${exp.description}`).join('. ')
+            : 'Recent graduate or career changer seeking new opportunities';
+
+        // Prepare skills list
+        const skillsText = skills && skills.length > 0 
+            ? skills.join(', ')
+            : 'Various technical and soft skills';
+
+        // Create structured prompt for cover letter
+        const prompt = `Write a professional, concise cover letter for the following:
+
+Position: ${role}
+${companyName ? `Company: ${companyName}` : ''}
+${resumeSummary ? `Professional Summary: ${resumeSummary}` : ''}
+
+Experience: ${experienceText}
+
+Key Skills: ${skillsText}
+
+Requirements:
+- Keep it concise (3-4 paragraphs maximum)
+- Professional tone
+- Focus on relevant experience and skills
+- Include enthusiasm for the role
+- End with a call to action
+- No placeholder text like [Your Name] or [Company Name]
+- Make it personalized and compelling
+- Avoid generic phrases
+
+Format: Return only the cover letter text, no additional formatting or explanations.`;
+
+        const completion = await openai.chat.completions.create({
+            model: "gpt-3.5-turbo",
+            messages: [
+                {
+                    role: "system",
+                    content: "You are a professional career counselor and expert writer specializing in creating compelling cover letters. Write professional, personalized cover letters that highlight relevant experience and skills for specific roles."
+                },
+                {
+                    role: "user",
+                    content: prompt
+                }
+            ],
+            max_tokens: 800,
+            temperature: 0.7
+        });
+
+        const coverLetter = completion.choices[0].message.content.trim();
+
+        res.json({
+            success: true,
+            data: {
+                coverLetter,
+                role,
+                companyName: companyName || null
+            },
+            message: 'Cover letter generated successfully'
+        });
+
+    } catch (error) {
+        console.error('Error generating cover letter:', error);
+        
+        if (error.code === 'insufficient_quota' || error.message?.includes('quota')) {
+            return res.status(429).json({
+                success: false,
+                message: 'OpenAI API quota exceeded. Please try again later.'
+            });
+        }
+
+        res.status(500).json({
+            success: false,
+            message: 'Error generating cover letter. Please try again.',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+};
+
 // Helper function to generate public resume HTML
 const generatePublicResumeHTML = (resume) => {
     return `
@@ -609,5 +713,6 @@ module.exports = {
     getResume,
     getAllResumes,
     getPublicResume,
-    deleteResume
+    deleteResume,
+    generateCoverLetter
 };

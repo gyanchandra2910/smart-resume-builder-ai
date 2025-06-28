@@ -314,11 +314,14 @@ function renderCertificationsSection(certifications, template = 'classic') {
 
 // Function to load resume data from localStorage or provide demo data
 function loadResumeData() {
+    console.log('Loading resume data...');
+    
     // Check for URL parameters first (for preview links from saved resumes)
     const urlParams = new URLSearchParams(window.location.search);
     const resumeId = urlParams.get('id');
     
     if (resumeId) {
+        console.log('Loading resume from server with ID:', resumeId);
         // Load specific resume from server
         loadResumeFromServer(resumeId);
         return;
@@ -326,10 +329,12 @@ function loadResumeData() {
     
     // Try to load from localStorage
     const savedData = localStorage.getItem('resumeData');
+    console.log('Checking localStorage for resume data...');
     
     if (savedData) {
         try {
             const data = JSON.parse(savedData);
+            console.log('Found saved data, rendering preview');
             renderResumePreview(data);
             return;
         } catch (error) {
@@ -337,8 +342,14 @@ function loadResumeData() {
         }
     }
     
-    // If no data found, show demo data or empty state
+    // If no data found, show demo data immediately
+    console.log('No saved data found, loading demo data');
     loadDemoData();
+    
+    // Show helpful message
+    setTimeout(() => {
+        showAlert('Demo resume loaded! Create your own at Resume Builder or load your saved resumes.', 'info');
+    }, 1000);
 }
 
 // Function to load resume from server by ID
@@ -737,6 +748,555 @@ function copyToClipboard() {
     }
 }
 
+// Generate cover letter functionality
+function generateCoverLetter() {
+    const savedData = localStorage.getItem('resumeData');
+    if (!savedData) {
+        showAlert('No resume data found. Please create or load a resume first.', 'warning');
+        return;
+    }
+
+    const generateBtn = document.getElementById('generateCoverLetterBtn');
+    const originalText = generateBtn ? generateBtn.innerHTML : '';
+    
+    if (generateBtn) {
+        generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating...';
+        generateBtn.disabled = true;
+    }
+
+    try {
+        const data = JSON.parse(savedData);
+        
+        // Show input modal first
+        showCoverLetterInputModal(data, originalText, generateBtn);
+        
+    } catch (error) {
+        console.error('Error parsing resume data:', error);
+        showAlert('Error processing resume data.', 'danger');
+        
+        if (generateBtn) {
+            generateBtn.innerHTML = originalText;
+            generateBtn.disabled = false;
+        }
+    }
+}
+
+// Show cover letter input modal
+function showCoverLetterInputModal(resumeData, originalText, generateBtn) {
+    // Remove existing modal if any
+    const existingModal = document.getElementById('coverLetterInputModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    // Create input modal HTML
+    const modalHTML = `
+        <div class="modal fade" id="coverLetterInputModal" tabindex="-1" aria-labelledby="coverLetterInputLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title" id="coverLetterInputLabel">
+                            <i class="fas fa-file-alt me-2"></i>Generate Cover Letter
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="coverLetterForm">
+                            <div class="mb-3">
+                                <label for="targetRole" class="form-label fw-bold">Position/Role *</label>
+                                <input type="text" class="form-control" id="targetRole" value="${resumeData.roleAppliedFor || ''}" 
+                                       placeholder="e.g., Senior Software Developer" required>
+                                <small class="text-muted">The specific role you're applying for</small>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="companyName" class="form-label fw-bold">Company Name (Optional)</label>
+                                <input type="text" class="form-control" id="companyName" 
+                                       placeholder="e.g., Google, Microsoft, Startup Inc.">
+                                <small class="text-muted">Company name to personalize the cover letter</small>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="resumeSummary" class="form-label fw-bold">Professional Summary (Optional)</label>
+                                <textarea class="form-control" id="resumeSummary" rows="3" 
+                                          placeholder="Brief professional summary or career objective">${resumeData.careerObjective || ''}</textarea>
+                                <small class="text-muted">Your professional background and career goals</small>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6 class="fw-bold text-muted">Key Skills (Auto-filled)</h6>
+                                    <div class="border rounded p-2 mb-3" style="max-height: 120px; overflow-y: auto;">
+                                        ${resumeData.skills && resumeData.skills.length > 0 
+                                            ? resumeData.skills.map(skill => `<span class="badge bg-light text-dark me-1 mb-1">${skill}</span>`).join('')
+                                            : '<span class="text-muted">No skills found</span>'
+                                        }
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6 class="fw-bold text-muted">Experience (Auto-filled)</h6>
+                                    <div class="border rounded p-2 mb-3" style="max-height: 120px; overflow-y: auto;">
+                                        ${resumeData.experience && resumeData.experience.length > 0 
+                                            ? resumeData.experience.map(exp => `<small class="d-block mb-1"><strong>${exp.role}</strong> at ${exp.company}</small>`).join('')
+                                            : '<span class="text-muted">No experience found</span>'
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" id="generateCoverLetterSubmit">
+                            <i class="fas fa-magic me-2"></i>Generate Cover Letter
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Add modal to document
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('coverLetterInputModal'));
+    modal.show();
+
+    // Handle form submission
+    document.getElementById('generateCoverLetterSubmit').addEventListener('click', function() {
+        const targetRole = document.getElementById('targetRole').value.trim();
+        const companyName = document.getElementById('companyName').value.trim();
+        const resumeSummary = document.getElementById('resumeSummary').value.trim();
+        
+        if (!targetRole) {
+            showAlert('Please enter the position/role you are applying for.', 'warning');
+            return;
+        }
+        
+        // Close input modal
+        modal.hide();
+        
+        // Generate cover letter
+        generateCoverLetterAPI(resumeData, targetRole, companyName, resumeSummary, originalText, generateBtn);
+    });
+
+    // Clean up modal when hidden
+    document.getElementById('coverLetterInputModal').addEventListener('hidden.bs.modal', function () {
+        this.remove();
+        // Reset button if modal was closed without generating
+        if (generateBtn) {
+            generateBtn.innerHTML = originalText;
+            generateBtn.disabled = false;
+        }
+    });
+}
+
+// Call API to generate cover letter
+function generateCoverLetterAPI(resumeData, targetRole, companyName, resumeSummary, originalText, generateBtn) {
+    const requestData = {
+        role: targetRole,
+        companyName: companyName || null,
+        resumeSummary: resumeSummary || resumeData.careerObjective || null,
+        experience: resumeData.experience || [],
+        skills: resumeData.skills || []
+    };
+
+    fetch('/api/resume/generateCoverLetter', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            showCoverLetterModal(result.data.coverLetter, targetRole, companyName);
+            showAlert('Cover letter generated successfully!', 'success');
+        } else {
+            showAlert('Error generating cover letter: ' + result.message, 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error generating cover letter:', error);
+        showAlert('Error generating cover letter. Please try again.', 'danger');
+    })
+    .finally(() => {
+        if (generateBtn) {
+            generateBtn.innerHTML = originalText;
+            generateBtn.disabled = false;
+        }
+    });
+}
+
+// Show cover letter result modal
+function showCoverLetterModal(coverLetter, role, companyName) {
+    // Remove existing modal if any
+    const existingModal = document.getElementById('coverLetterModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    // Create modal HTML
+    const modalHTML = `
+        <div class="modal fade" id="coverLetterModal" tabindex="-1" aria-labelledby="coverLetterModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title" id="coverLetterModalLabel">
+                            <i class="fas fa-file-alt me-2"></i>Generated Cover Letter
+                            ${companyName ? `- ${companyName}` : ''} (${role})
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle me-2"></i>
+                            <strong>Success!</strong> Your cover letter has been generated. You can copy and customize it as needed.
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="coverLetterText" class="form-label fw-bold">Cover Letter:</label>
+                            <textarea class="form-control" id="coverLetterText" rows="15" style="font-family: 'Times New Roman', serif;">${coverLetter}</textarea>
+                            <small class="text-muted">You can edit the text above before copying or downloading.</small>
+                        </div>
+                        
+                        <div class="row text-center mt-3">
+                            <div class="col-md-4 mb-2">
+                                <button class="btn btn-primary w-100" onclick="copyCoverLetterText()">
+                                    <i class="fas fa-copy me-2"></i>Copy to Clipboard
+                                </button>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <button class="btn btn-success w-100" onclick="downloadCoverLetterText()">
+                                    <i class="fas fa-download me-2"></i>Download as Text
+                                </button>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <button class="btn btn-info w-100" onclick="regenerateCoverLetter()">
+                                    <i class="fas fa-sync-alt me-2"></i>Generate New Version
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-info mt-3">
+                            <i class="fas fa-lightbulb me-2"></i>
+                            <strong>Tip:</strong> Review and customize the cover letter to match the specific job posting and company culture before submitting.
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Add modal to document
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('coverLetterModal'));
+    modal.show();
+
+    // Clean up modal when hidden
+    document.getElementById('coverLetterModal').addEventListener('hidden.bs.modal', function () {
+        this.remove();
+    });
+}
+
+// Copy cover letter to clipboard
+function copyCoverLetterText() {
+    const textArea = document.getElementById('coverLetterText');
+    textArea.select();
+    textArea.setSelectionRange(0, 99999);
+
+    try {
+        navigator.clipboard.writeText(textArea.value).then(() => {
+            showAlert('Cover letter copied to clipboard!', 'success');
+        });
+    } catch (err) {
+        document.execCommand('copy');
+        showAlert('Cover letter copied to clipboard!', 'success');
+    }
+}
+
+// Download cover letter as text file
+function downloadCoverLetterText() {
+    const textArea = document.getElementById('coverLetterText');
+    const text = textArea.value;
+    const filename = `cover_letter_${new Date().toISOString().split('T')[0]}.txt`;
+    
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    
+    showAlert('Cover letter downloaded successfully!', 'success');
+}
+
+// Regenerate cover letter (close modal and reopen input)
+function regenerateCoverLetter() {
+    const modal = bootstrap.Modal.getInstance(document.getElementById('coverLetterModal'));
+    modal.hide();
+    
+    // Wait for modal to close then trigger regeneration
+    setTimeout(() => {
+        generateCoverLetter();
+    }, 300);
+}
+
+// Save current resume to database
+function saveResume() {
+    const savedData = localStorage.getItem('resumeData');
+    if (!savedData) {
+        showAlert('No resume data found. Please create a resume first.', 'warning');
+        return;
+    }
+
+    const saveBtn = document.getElementById('saveResumeBtn');
+    const originalText = saveBtn ? saveBtn.innerHTML : '';
+    
+    if (saveBtn) {
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
+        saveBtn.disabled = true;
+    }
+
+    try {
+        const data = JSON.parse(savedData);
+        
+        // Save resume via API
+        fetch('/api/resume/input', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                showAlert('Resume saved successfully!', 'success');
+                // Store the saved resume ID
+                localStorage.setItem('currentResumeId', result.data.id);
+            } else {
+                showAlert('Error saving resume: ' + result.message, 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error saving resume:', error);
+            showAlert('Error saving resume. Please try again.', 'danger');
+        })
+        .finally(() => {
+            if (saveBtn) {
+                saveBtn.innerHTML = originalText;
+                saveBtn.disabled = false;
+            }
+        });
+        
+    } catch (error) {
+        console.error('Error parsing resume data:', error);
+        showAlert('Error processing resume data.', 'danger');
+        
+        if (saveBtn) {
+            saveBtn.innerHTML = originalText;
+            saveBtn.disabled = false;
+        }
+    }
+}
+
+// Load saved resumes list
+function loadSavedResumes() {
+    fetch('/api/resume')
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                showSavedResumesModal(result.data);
+            } else {
+                showAlert('Error loading saved resumes: ' + result.message, 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error loading saved resumes:', error);
+            showAlert('Error loading saved resumes. Please try again.', 'danger');
+        });
+}
+
+// Show saved resumes modal
+function showSavedResumesModal(resumes) {
+    // Remove existing modal if any
+    const existingModal = document.getElementById('savedResumesModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    // Create modal HTML
+    const modalHTML = `
+        <div class="modal fade" id="savedResumesModal" tabindex="-1" aria-labelledby="savedResumesModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+                    <div class="modal-header bg-info text-white">
+                        <h5 class="modal-title" id="savedResumesModalLabel">
+                            <i class="fas fa-folder-open me-2"></i>Saved Resumes (${resumes.length})
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        ${resumes.length === 0 ? `
+                        <div class="text-center py-5">
+                            <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No saved resumes found</h5>
+                            <p class="text-muted">Create and save your first resume to see it here.</p>
+                            <a href="/resume-builder.html" class="btn btn-primary">
+                                <i class="fas fa-plus me-2"></i>Create New Resume
+                            </a>
+                        </div>
+                        ` : `
+                        <div class="row">
+                            ${resumes.map(resume => `
+                            <div class="col-md-6 col-lg-4 mb-3">
+                                <div class="card h-100 shadow-sm">
+                                    <div class="card-body">
+                                        <h6 class="card-title text-primary fw-bold">${resume.fullName || 'Unnamed Resume'}</h6>
+                                        <p class="card-text">
+                                            <small class="text-muted">
+                                                <i class="fas fa-briefcase me-1"></i>${resume.roleAppliedFor || 'No role specified'}
+                                            </small>
+                                        </p>
+                                        <p class="card-text">
+                                            <small class="text-muted">
+                                                <i class="fas fa-calendar me-1"></i>Saved: ${new Date(resume.createdAt).toLocaleDateString()}
+                                            </small>
+                                        </p>
+                                        <div class="d-flex gap-1">
+                                            <button class="btn btn-sm btn-primary flex-fill" onclick="loadResumeById('${resume._id}')">
+                                                <i class="fas fa-eye me-1"></i>Load
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-success" onclick="shareResumeById('${resume._id}')">
+                                                <i class="fas fa-share me-1"></i>Share
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger" onclick="deleteResumeById('${resume._id}')">
+                                                <i class="fas fa-trash me-1"></i>Delete
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            `).join('')}
+                        </div>
+                        `}
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary" onclick="window.location.href='/resume-builder.html'">
+                            <i class="fas fa-plus me-2"></i>Create New Resume
+                        </button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Add modal to document
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('savedResumesModal'));
+    modal.show();
+
+    // Clean up modal when hidden
+    document.getElementById('savedResumesModal').addEventListener('hidden.bs.modal', function () {
+        this.remove();
+    });
+}
+
+// Load specific resume by ID
+function loadResumeById(resumeId) {
+    fetch(`/api/resume/${resumeId}`)
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                // Store in localStorage
+                localStorage.setItem('resumeData', JSON.stringify(result.data));
+                localStorage.setItem('currentResumeId', resumeId);
+                
+                // Close modal and render preview
+                const modal = bootstrap.Modal.getInstance(document.getElementById('savedResumesModal'));
+                modal.hide();
+                
+                // Render the loaded resume
+                renderResumePreview(result.data);
+                showAlert('Resume loaded successfully!', 'success');
+            } else {
+                showAlert('Error loading resume: ' + result.message, 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error loading resume:', error);
+            showAlert('Error loading resume. Please try again.', 'danger');
+        });
+}
+
+// Share resume by ID
+function shareResumeById(resumeId) {
+    const shareableUrl = `${window.location.origin}/resume/${resumeId}`;
+    
+    navigator.clipboard.writeText(shareableUrl).then(() => {
+        showAlert('Resume share link copied to clipboard!', 'success');
+    }).catch(() => {
+        // Fallback
+        prompt('Copy this link to share your resume:', shareableUrl);
+    });
+}
+
+// Delete resume by ID
+function deleteResumeById(resumeId) {
+    console.log('Delete function called with ID:', resumeId);
+    
+    if (!confirm('Are you sure you want to delete this resume? This action cannot be undone.')) {
+        console.log('Delete cancelled by user');
+        return;
+    }
+
+    console.log('Sending delete request to:', `/api/resume/${resumeId}`);
+    
+    fetch(`/api/resume/${resumeId}`, {
+        method: 'DELETE'
+    })
+    .then(response => {
+        console.log('Delete response status:', response.status);
+        return response.json();
+    })
+    .then(result => {
+        console.log('Delete result:', result);
+        if (result.success) {
+            showAlert('Resume deleted successfully!', 'success');
+            // Reload the saved resumes list
+            setTimeout(() => {
+                loadSavedResumes();
+            }, 1000);
+        } else {
+            showAlert('Error deleting resume: ' + result.message, 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error deleting resume:', error);
+        showAlert('Error deleting resume. Please try again.', 'danger');
+    });
+}
+
+// Force load demo data
+function forceLoadDemoData() {
+    loadDemoData();
+    showAlert('Demo data loaded successfully!', 'success');
+}
+
 // Initialize preview when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
     // Set initial template selection from localStorage
@@ -769,6 +1329,26 @@ document.addEventListener('DOMContentLoaded', function() {
     const shareBtn = document.getElementById('shareBtn');
     if (shareBtn) {
         shareBtn.addEventListener('click', shareResume);
+    }
+    
+    const generateCoverLetterBtn = document.getElementById('generateCoverLetterBtn');
+    if (generateCoverLetterBtn) {
+        generateCoverLetterBtn.addEventListener('click', generateCoverLetter);
+    }
+    
+    const saveResumeBtn = document.getElementById('saveResumeBtn');
+    if (saveResumeBtn) {
+        saveResumeBtn.addEventListener('click', saveResume);
+    }
+    
+    const loadSavedBtn = document.getElementById('loadSavedBtn');
+    if (loadSavedBtn) {
+        loadSavedBtn.addEventListener('click', loadSavedResumes);
+    }
+    
+    const loadDemoBtn = document.getElementById('loadDemoBtn');
+    if (loadDemoBtn) {
+        loadDemoBtn.addEventListener('click', forceLoadDemoData);
     }
     
     const previewBtn = document.getElementById('previewBtn');
@@ -804,6 +1384,22 @@ if (typeof module !== 'undefined' && module.exports) {
         saveSelectedTemplate,
         shareResume,
         showShareModal,
-        copyToClipboard
+        copyToClipboard,
+        generateCoverLetter,
+        copyCoverLetterText,
+        downloadCoverLetterText,
+        regenerateCoverLetter,
+        saveResume,
+        loadSavedResumes,
+        loadResumeById,
+        shareResumeById,
+        deleteResumeById,
+        forceLoadDemoData,
+        saveResume,
+        loadSavedResumes,
+        loadResumeById,
+        shareResumeById,
+        deleteResumeById,
+        forceLoadDemoData
     };
 }

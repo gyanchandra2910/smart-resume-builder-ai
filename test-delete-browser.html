@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Delete Functionality</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1>Test Delete Functionality</h1>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <h3>Available Resumes</h3>
+                <div id="resumesList"></div>
+            </div>
+        </div>
+        
+        <div class="alert alert-info mt-3" id="statusAlert" style="display: none;"></div>
+    </div>
+
+    <script>
+        // Load and display resumes
+        function loadResumes() {
+            fetch('/api/resume')
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        displayResumes(result.data);
+                    } else {
+                        showStatus('Error loading resumes: ' + result.message, 'danger');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showStatus('Error loading resumes', 'danger');
+                });
+        }
+
+        function displayResumes(resumes) {
+            const container = document.getElementById('resumesList');
+            if (resumes.length === 0) {
+                container.innerHTML = '<p class="text-muted">No resumes found</p>';
+                return;
+            }
+
+            container.innerHTML = resumes.map(resume => `
+                <div class="card mb-2">
+                    <div class="card-body">
+                        <h6 class="card-title">${resume.name}</h6>
+                        <p class="card-text small">${resume.email} - ${resume.roleAppliedFor}</p>
+                        <button class="btn btn-sm btn-danger" onclick="deleteResume('${resume._id}', '${resume.name}')">
+                            Delete
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function deleteResume(resumeId, resumeName) {
+            if (!confirm(`Are you sure you want to delete the resume for "${resumeName}"? This action cannot be undone.`)) {
+                return;
+            }
+
+            console.log('Deleting resume with ID:', resumeId);
+
+            fetch(`/api/resume/${resumeId}`, {
+                method: 'DELETE'
+            })
+            .then(response => {
+                console.log('Response status:', response.status);
+                return response.json();
+            })
+            .then(result => {
+                console.log('Delete result:', result);
+                if (result.success) {
+                    showStatus(`Resume "${resumeName}" deleted successfully!`, 'success');
+                    loadResumes(); // Reload the list
+                } else {
+                    showStatus('Error deleting resume: ' + result.message, 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting resume:', error);
+                showStatus('Error deleting resume. Please try again.', 'danger');
+            });
+        }
+
+        function showStatus(message, type) {
+            const alert = document.getElementById('statusAlert');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            alert.style.display = 'block';
+            
+            setTimeout(() => {
+                alert.style.display = 'none';
+            }, 5000);
+        }
+
+        // Load resumes when page loads
+        document.addEventListener('DOMContentLoaded', loadResumes);
+    </script>
+</body>
+</html>

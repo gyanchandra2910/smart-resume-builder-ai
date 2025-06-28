@@ -1036,19 +1036,26 @@ document.addEventListener('DOMContentLoaded', function() {
     // Delete resume function
     window.deleteResume = function(resumeId, resumeName) {
         if (confirm(`Are you sure you want to delete the resume "${resumeName}"? This action cannot be undone.`)) {
-            // In a full implementation, you would need a DELETE endpoint
-            showAlert('Delete functionality will be implemented with user authentication.', 'warning');
-            // For now, just refresh the list
-            // fetch(`/api/resume/${resumeId}`, { method: 'DELETE' })
-            //     .then(response => response.json())
-            //     .then(data => {
-            //         if (data.success) {
-            //             showAlert('Resume deleted successfully.', 'success');
-            //             loadSavedResumes();
-            //         } else {
-            //             showAlert('Error deleting resume: ' + data.message, 'danger');
-            //         }
-            //     });
+            // Call the DELETE endpoint
+            fetch(`/api/resume/${resumeId}`, { 
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert('Resume deleted successfully!', 'success');
+                    loadSavedResumes(); // Refresh the list
+                } else {
+                    showAlert('Error deleting resume: ' + data.message, 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting resume:', error);
+                showAlert('Error deleting resume. Please try again.', 'danger');
+            });
         }
     };
 
