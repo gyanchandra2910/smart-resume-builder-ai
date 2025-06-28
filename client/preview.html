@@ -15,19 +15,140 @@
             min-height: 11in;
             background: white;
             font-family: 'Times New Roman', serif;
+            transition: all 0.5s ease;
+            border-radius: 4px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
         
-        .section-title {
+        /* Classic Template (Default) */
+        .template-classic {
+            background: #ffffff;
+        }
+        
+        .template-classic .section-title {
             color: #2c3e50 !important;
             border-bottom: 2px solid #3498db !important;
+            font-family: 'Times New Roman', serif;
         }
         
-        .resume-header h1 {
+        .template-classic .resume-header h1 {
             color: #2c3e50 !important;
+            font-family: 'Times New Roman', serif;
         }
         
-        .resume-header h2 {
+        .template-classic .resume-header h2 {
             color: #7f8c8d !important;
+        }
+        
+        .template-classic .skills-container .badge {
+            background: #3498db !important;
+            color: white !important;
+            border: none !important;
+        }
+        
+        /* Modern Template */
+        .template-modern {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        }
+        
+        .template-modern .resume-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white !important;
+            margin: -1.5rem -1.5rem 2rem -1.5rem;
+            padding: 2rem 1.5rem;
+            border-radius: 0;
+        }
+        
+        .template-modern .resume-header h1,
+        .template-modern .resume-header h2,
+        .template-modern .resume-header .text-muted,
+        .template-modern .resume-header .contact-info span {
+            color: white !important;
+        }
+        
+        .template-modern .section-title {
+            color: #667eea !important;
+            border-bottom: 3px solid #667eea !important;
+            font-family: 'Arial', sans-serif;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .template-modern .resume-section {
+            background: white;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .template-modern .skills-container .badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+            color: white !important;
+            border: none !important;
+        }
+        
+        /* Elegant Template */
+        .template-elegant {
+            font-family: 'Georgia', serif;
+            background: #fafafa;
+        }
+        
+        .template-elegant .resume-header {
+            text-align: left !important;
+            border-bottom: 4px solid #d4af37;
+            background: #2c3e50;
+            color: white !important;
+            margin: -1.5rem -1.5rem 2rem -1.5rem;
+            padding: 2rem 1.5rem;
+        }
+        
+        .template-elegant .resume-header h1 {
+            color: #d4af37 !important;
+            font-family: 'Georgia', serif;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        
+        .template-elegant .resume-header h2,
+        .template-elegant .resume-header .text-muted,
+        .template-elegant .resume-header .contact-info span {
+            color: #ecf0f1 !important;
+        }
+        
+        .template-elegant .section-title {
+            color: #2c3e50 !important;
+            border-bottom: 2px solid #d4af37 !important;
+            font-family: 'Georgia', serif;
+            font-weight: bold;
+            position: relative;
+        }
+        
+        .template-elegant .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 50px;
+            height: 2px;
+            background: #d4af37;
+        }
+        
+        .template-elegant .experience-item,
+        .template-elegant .education-item,
+        .template-elegant .project-item,
+        .template-elegant .certification-item {
+            border-left: 3px solid #d4af37;
+            padding-left: 1rem;
+            margin-left: 0.5rem;
+        }
+        
+        .template-elegant .skills-container .badge {
+            background: #2c3e50 !important;
+            color: #d4af37 !important;
+            border: 1px solid #d4af37 !important;
         }
         
         .skill-tag {
@@ -43,6 +164,10 @@
                 box-shadow: none !important;
                 border: none !important;
             }
+            
+            .template-modern .resume-section {
+                box-shadow: none !important;
+            }
         }
         
         .preview-controls {
@@ -50,6 +175,36 @@
             border-radius: 8px;
             padding: 20px;
             margin-bottom: 30px;
+        }
+        
+        .template-preview {
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.6s ease forwards;
+        }
+        
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Template Selection Button Enhancement */
+        .btn-check:checked + .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: #667eea;
+            color: white;
+            transform: scale(1.05);
+        }
+        
+        .btn-outline-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        
+        .btn-outline-primary {
+            transition: all 0.3s ease;
         }
     </style>
 </head>
@@ -127,15 +282,33 @@
                 <!-- Controls Section -->
                 <div class="preview-controls no-print">
                     <div class="row align-items-center">
-                        <div class="col-md-8">
+                        <div class="col-md-6">
                             <h2 class="h4 mb-3 mb-md-0">
                                 <i class="fas fa-eye me-2"></i>Resume Preview
                             </h2>
-                            <p class="text-muted mb-0">Review your resume and download as PDF when ready</p>
+                            <p class="text-muted mb-0">Choose a template and download as PDF when ready</p>
                         </div>
-                        <div class="col-md-4 text-md-end">
+                        <div class="col-md-6 text-md-end">
+                            <!-- Template Selection -->
+                            <div class="btn-group me-2" role="group" aria-label="Template selection">
+                                <input type="radio" class="btn-check" name="template" id="template-classic" value="classic" checked>
+                                <label class="btn btn-outline-primary btn-sm" for="template-classic">
+                                    <i class="fas fa-file-alt me-1"></i>Classic
+                                </label>
+
+                                <input type="radio" class="btn-check" name="template" id="template-modern" value="modern">
+                                <label class="btn btn-outline-primary btn-sm" for="template-modern">
+                                    <i class="fas fa-layer-group me-1"></i>Modern
+                                </label>
+
+                                <input type="radio" class="btn-check" name="template" id="template-elegant" value="elegant">
+                                <label class="btn btn-outline-primary btn-sm" for="template-elegant">
+                                    <i class="fas fa-crown me-1"></i>Elegant
+                                </label>
+                            </div>
+                            
                             <button type="button" class="btn btn-outline-primary me-2" id="previewBtn">
-                                <i class="fas fa-sync-alt me-2"></i>Refresh Preview
+                                <i class="fas fa-sync-alt me-2"></i>Refresh
                             </button>
                             <button type="button" class="btn btn-success" id="downloadPdfBtn">
                                 <i class="fas fa-download me-2"></i>Download PDF
@@ -147,12 +320,21 @@
                     <div class="row mt-3">
                         <div class="col-12">
                             <div class="alert alert-info mb-0">
-                                <i class="fas fa-info-circle me-2"></i>
-                                <strong>Demo Mode:</strong> Use the sample data below to test the preview functionality, or go to the 
-                                <a href="/resume-builder.html" class="alert-link">Resume Builder</a> to create your own resume.
-                                <button type="button" class="btn btn-sm btn-outline-info ms-2" id="loadDemoBtn">
-                                    <i class="fas fa-magic me-1"></i>Load Demo Data
-                                </button>
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div>
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        <strong>Demo Mode:</strong> Use the sample data below to test the preview functionality and template switching, or go to the 
+                                        <a href="/resume-builder.html" class="alert-link">Resume Builder</a> to create your own resume.
+                                    </div>
+                                    <div>
+                                        <button type="button" class="btn btn-sm btn-outline-info me-2" id="loadDemoBtn">
+                                            <i class="fas fa-magic me-1"></i>Load Demo Data
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-info" id="cycleTemplatesBtn">
+                                            <i class="fas fa-sync-alt me-1"></i>Try All Templates
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -258,6 +440,49 @@
             localStorage.setItem('resumeData', JSON.stringify(demoData));
             renderResumePreview(demoData);
             showAlert('Demo data loaded successfully!', 'success');
+        });
+
+        // Cycle through all templates demo
+        document.getElementById('cycleTemplatesBtn').addEventListener('click', function() {
+            const templates = ['classic', 'modern', 'elegant'];
+            let currentIndex = 0;
+            const btn = this;
+            const originalText = btn.innerHTML;
+            
+            // Load demo data first if not present
+            const savedData = localStorage.getItem('resumeData');
+            if (!savedData) {
+                document.getElementById('loadDemoBtn').click();
+            }
+            
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Cycling...';
+            btn.disabled = true;
+            
+            function cycleNext() {
+                if (currentIndex < templates.length) {
+                    const template = templates[currentIndex];
+                    
+                    // Update radio button
+                    document.getElementById(`template-${template}`).checked = true;
+                    
+                    // Switch template
+                    if (typeof switchTemplate === 'function') {
+                        switchTemplate(template);
+                    }
+                    
+                    setTimeout(() => {
+                        currentIndex++;
+                        cycleNext();
+                    }, 2000); // 2 second delay between templates
+                } else {
+                    // Reset button
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                    showAlert('Template cycling complete! Choose your preferred template above.', 'info');
+                }
+            }
+            
+            cycleNext();
         });
     </script>
     <script src="auth.js"></script>

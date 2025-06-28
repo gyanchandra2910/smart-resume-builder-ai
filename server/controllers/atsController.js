@@ -166,37 +166,48 @@ const checkATSScore = async (req, res) => {
 
         // Create the prompt for ATS analysis
         const prompt = `
-You are an expert ATS (Applicant Tracking System) analyzer and professional resume reviewer. 
+You are an expert ATS (Applicant Tracking System) evaluator used by top hiring platforms.
 
-Analyze the following resume and provide:
+Analyze the resume below and provide:
+1. An honest **ATS score out of 100**
+2. **3 specific, actionable suggestions** to improve it
 
-1. An ATS compatibility score out of 100 (considering keywords, formatting, structure, completeness)
-2. Exactly 3 specific, actionable suggestions to improve the resume for better ATS performance and overall quality
+Be **strict** — penalize resumes that:
+- Lack relevant keywords or achievements
+- Miss important sections (experience, education, skills)
+- Have poor structure or weak objectives
 
-Consider these factors in your analysis:
-- Use of relevant keywords for the target role
-- Resume structure and organization
-- Quantifiable achievements and impact statements
-- Skills alignment with industry standards
-- Professional language and clarity
-- Completeness of sections
-- ATS-friendly formatting elements
+Use the following **scoring breakdown**:
+- 🔑 Keywords & Skills relevance: 25 points
+- 📐 Structure & formatting: 20 points
+- 📊 Quantified achievements: 20 points
+- 🎯 Role alignment: 15 points
+- ✍️ Professional language: 10 points
+- 🧩 Completeness (has all major sections): 10 points
 
-RESUME CONTENT:
+**Resume missing 1 or more categories should not get above 70.**
+
+---
+
+## Resume Content:
 ${plainTextResume}
 
-Please respond in the following JSON format only:
+---
+
+Respond **only** in the following JSON format:
+
 {
-  "score": [number between 0-100],
+  "score": [strict number between 0-100],
   "suggestions": [
-    "First specific suggestion...",
-    "Second specific suggestion...", 
-    "Third specific suggestion..."
+    "First actionable suggestion",
+    "Second actionable suggestion",
+    "Third actionable suggestion"
   ]
 }
 
-Be specific and actionable in your suggestions. Focus on improvements that will have the most impact on ATS performance and resume quality.
+Only output the JSON object. Do not explain your reasoning outside it.
 `;
+
 
         console.log('Calling OpenAI for ATS analysis...'); // Debug log
         

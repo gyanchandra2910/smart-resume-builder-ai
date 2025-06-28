@@ -1,6 +1,16 @@
-// preview.js - Resume Preview and PDF Generation
+// preview.js - Resume Preview and PDF Generation with Template Support
 
-// Function to render resume preview from data
+// Get current selected template from localStorage or default to 'classic'
+function getCurrentTemplate() {
+    return localStorage.getItem('selectedTemplate') || 'classic';
+}
+
+// Save selected template to localStorage
+function saveSelectedTemplate(template) {
+    localStorage.setItem('selectedTemplate', template);
+}
+
+// Function to render resume preview from data with template support
 function renderResumePreview(data) {
     const previewContainer = document.getElementById('resumePreview');
     
@@ -9,139 +19,195 @@ function renderResumePreview(data) {
         return;
     }
 
+    const currentTemplate = getCurrentTemplate();
+    
     // Clear previous content
     previewContainer.innerHTML = '';
 
-    // Create resume HTML structure
-    const resumeHTML = `
-        <div class="resume-container bg-white p-4 shadow-sm border">
-            <!-- Header Section -->
-            <div class="resume-header text-center mb-4 pb-3 border-bottom">
-                <h1 class="display-6 mb-2 text-primary fw-bold">${data.fullName || data.name || 'Name Not Provided'}</h1>
-                <h2 class="h4 text-muted mb-3">${data.roleAppliedFor || 'Role Not Specified'}</h2>
-                
-                <!-- Contact Information -->
-                <div class="contact-info">
-                    <div class="row justify-content-center">
-                        <div class="col-auto">
-                            <span class="text-muted">
-                                <i class="fas fa-envelope me-1"></i>${data.email || 'Email not provided'}
-                            </span>
-                        </div>
-                        ${data.phone ? `
-                        <div class="col-auto">
-                            <span class="text-muted">
-                                <i class="fas fa-phone me-1"></i>${data.phone}
-                            </span>
-                        </div>
-                        ` : ''}
-                        ${data.address ? `
-                        <div class="col-auto">
-                            <span class="text-muted">
-                                <i class="fas fa-map-marker-alt me-1"></i>${data.address}
-                            </span>
-                        </div>
-                        ` : ''}
+    // Create resume HTML structure with template class
+    const resumeHTML = generateResumeHTML(data, currentTemplate);
+
+    previewContainer.innerHTML = resumeHTML;
+    
+    // Add template preview animation
+    const resumeElement = previewContainer.querySelector('.resume-container');
+    if (resumeElement) {
+        resumeElement.classList.add('template-preview');
+    }
+}
+
+// Generate resume HTML based on template
+function generateResumeHTML(data, template) {
+    const templateClass = `template-${template}`;
+    
+    return `
+        <div class="resume-container bg-white p-4 shadow-sm border ${templateClass}">
+            ${generateHeaderSection(data, template)}
+            ${generateObjectiveSection(data, template)}
+            ${generateSkillsSection(data, template)}
+            ${generateExperienceSection(data, template)}
+            ${generateEducationSection(data, template)}
+            ${generateProjectsSection(data, template)}
+            ${generateCertificationsSection(data, template)}
+        </div>
+    `;
+}
+
+// Generate header section based on template
+function generateHeaderSection(data, template) {
+    const isModern = template === 'modern';
+    const isElegant = template === 'elegant';
+    const textAlign = isElegant ? '' : 'text-center';
+    
+    return `
+        <!-- Header Section -->
+        <div class="resume-header ${textAlign} mb-4 pb-3 ${template !== 'modern' && template !== 'elegant' ? 'border-bottom' : ''}">
+            <h1 class="display-6 mb-2 text-primary fw-bold">${data.fullName || data.name || 'Name Not Provided'}</h1>
+            <h2 class="h4 text-muted mb-3">${data.roleAppliedFor || 'Role Not Specified'}</h2>
+            
+            <!-- Contact Information -->
+            <div class="contact-info">
+                <div class="row ${isElegant ? '' : 'justify-content-center'}">
+                    <div class="col-auto">
+                        <span class="text-muted">
+                            <i class="fas fa-envelope me-1"></i>${data.email || 'Email not provided'}
+                        </span>
                     </div>
-                    
-                    <!-- Social Links -->
-                    ${(data.linkedin || data.github || data.portfolio || (data.socialLinks && (data.socialLinks.linkedin || data.socialLinks.github || data.socialLinks.portfolio))) ? `
-                    <div class="row justify-content-center mt-2">
-                        ${data.linkedin || (data.socialLinks && data.socialLinks.linkedin) ? `
-                        <div class="col-auto">
-                            <a href="${data.linkedin || data.socialLinks.linkedin}" target="_blank" class="text-decoration-none">
-                                <i class="fab fa-linkedin me-1"></i>LinkedIn
-                            </a>
-                        </div>
-                        ` : ''}
-                        ${data.github || (data.socialLinks && data.socialLinks.github) ? `
-                        <div class="col-auto">
-                            <a href="${data.github || data.socialLinks.github}" target="_blank" class="text-decoration-none">
-                                <i class="fab fa-github me-1"></i>GitHub
-                            </a>
-                        </div>
-                        ` : ''}
-                        ${data.portfolio || (data.socialLinks && data.socialLinks.portfolio) ? `
-                        <div class="col-auto">
-                            <a href="${data.portfolio || data.socialLinks.portfolio}" target="_blank" class="text-decoration-none">
-                                <i class="fas fa-globe me-1"></i>Portfolio
-                            </a>
-                        </div>
-                        ` : ''}
+                    ${data.phone ? `
+                    <div class="col-auto">
+                        <span class="text-muted">
+                            <i class="fas fa-phone me-1"></i>${data.phone}
+                        </span>
+                    </div>
+                    ` : ''}
+                    ${data.address ? `
+                    <div class="col-auto">
+                        <span class="text-muted">
+                            <i class="fas fa-map-marker-alt me-1"></i>${data.address}
+                        </span>
                     </div>
                     ` : ''}
                 </div>
-            </div>
-
-            <!-- Professional Objective -->
-            ${data.careerObjective || data.objective ? `
-            <div class="resume-section mb-4">
-                <h3 class="section-title h5 text-primary fw-bold mb-3 border-bottom pb-1">
-                    <i class="fas fa-bullseye me-2"></i>Professional Objective
-                </h3>
-                <p class="objective-text">${data.careerObjective || data.objective}</p>
-            </div>
-            ` : ''}
-
-            <!-- Skills Section -->
-            ${data.skills && data.skills.length > 0 ? `
-            <div class="resume-section mb-4">
-                <h3 class="section-title h5 text-primary fw-bold mb-3 border-bottom pb-1">
-                    <i class="fas fa-code me-2"></i>Technical Skills
-                </h3>
-                <div class="skills-container">
-                    ${data.skills.map(skill => `<span class="badge bg-light text-dark border me-2 mb-2 p-2">${skill}</span>`).join('')}
+                
+                <!-- Social Links -->
+                ${(data.linkedin || data.github || data.portfolio || (data.socialLinks && (data.socialLinks.linkedin || data.socialLinks.github || data.socialLinks.portfolio))) ? `
+                <div class="row ${isElegant ? '' : 'justify-content-center'} mt-2">
+                    ${data.linkedin || (data.socialLinks && data.socialLinks.linkedin) ? `
+                    <div class="col-auto">
+                        <a href="${data.linkedin || data.socialLinks.linkedin}" target="_blank" class="text-decoration-none">
+                            <i class="fab fa-linkedin me-1"></i>LinkedIn
+                        </a>
+                    </div>
+                    ` : ''}
+                    ${data.github || (data.socialLinks && data.socialLinks.github) ? `
+                    <div class="col-auto">
+                        <a href="${data.github || data.socialLinks.github}" target="_blank" class="text-decoration-none">
+                            <i class="fab fa-github me-1"></i>GitHub
+                        </a>
+                    </div>
+                    ` : ''}
+                    ${data.portfolio || (data.socialLinks && data.socialLinks.portfolio) ? `
+                    <div class="col-auto">
+                        <a href="${data.portfolio || data.socialLinks.portfolio}" target="_blank" class="text-decoration-none">
+                            <i class="fas fa-globe me-1"></i>Portfolio
+                        </a>
+                    </div>
+                    ` : ''}
                 </div>
+                ` : ''}
             </div>
-            ` : ''}
-
-            <!-- Experience Section -->
-            ${data.experience && (Array.isArray(data.experience) ? data.experience.length > 0 : Object.keys(data.experience).length > 0) ? `
-            <div class="resume-section mb-4">
-                <h3 class="section-title h5 text-primary fw-bold mb-3 border-bottom pb-1">
-                    <i class="fas fa-briefcase me-2"></i>Professional Experience
-                </h3>
-                ${renderExperienceSection(data.experience)}
-            </div>
-            ` : ''}
-
-            <!-- Education Section -->
-            ${data.education && (Array.isArray(data.education) ? data.education.length > 0 : Object.keys(data.education).length > 0) ? `
-            <div class="resume-section mb-4">
-                <h3 class="section-title h5 text-primary fw-bold mb-3 border-bottom pb-1">
-                    <i class="fas fa-graduation-cap me-2"></i>Education
-                </h3>
-                ${renderEducationSection(data.education)}
-            </div>
-            ` : ''}
-
-            <!-- Projects Section -->
-            ${data.projects && (Array.isArray(data.projects) ? data.projects.length > 0 : Object.keys(data.projects).length > 0) ? `
-            <div class="resume-section mb-4">
-                <h3 class="section-title h5 text-primary fw-bold mb-3 border-bottom pb-1">
-                    <i class="fas fa-project-diagram me-2"></i>Projects
-                </h3>
-                ${renderProjectsSection(data.projects)}
-            </div>
-            ` : ''}
-
-            <!-- Certifications Section -->
-            ${data.certifications && (Array.isArray(data.certifications) ? data.certifications.length > 0 : Object.keys(data.certifications).length > 0) ? `
-            <div class="resume-section mb-4">
-                <h3 class="section-title h5 text-primary fw-bold mb-3 border-bottom pb-1">
-                    <i class="fas fa-certificate me-2"></i>Certifications
-                </h3>
-                ${renderCertificationsSection(data.certifications)}
-            </div>
-            ` : ''}
         </div>
     `;
+}
 
-    previewContainer.innerHTML = resumeHTML;
+// Generate objective section
+function generateObjectiveSection(data, template) {
+    if (!data.careerObjective && !data.objective) return '';
+    
+    return `
+        <div class="resume-section mb-4">
+            <h3 class="section-title h5 text-primary fw-bold mb-3 border-bottom pb-1">
+                <i class="fas fa-bullseye me-2"></i>Professional Objective
+            </h3>
+            <p class="objective-text">${data.careerObjective || data.objective}</p>
+        </div>
+    `;
+}
+
+// Generate skills section
+function generateSkillsSection(data, template) {
+    if (!data.skills || data.skills.length === 0) return '';
+    
+    return `
+        <div class="resume-section mb-4">
+            <h3 class="section-title h5 text-primary fw-bold mb-3 border-bottom pb-1">
+                <i class="fas fa-code me-2"></i>Technical Skills
+            </h3>
+            <div class="skills-container">
+                ${data.skills.map(skill => `<span class="badge bg-light text-dark border me-2 mb-2 p-2">${skill}</span>`).join('')}
+            </div>
+        </div>
+    `;
+}
+
+// Generate experience section
+function generateExperienceSection(data, template) {
+    if (!data.experience || (Array.isArray(data.experience) ? data.experience.length === 0 : Object.keys(data.experience).length === 0)) return '';
+    
+    return `
+        <div class="resume-section mb-4">
+            <h3 class="section-title h5 text-primary fw-bold mb-3 border-bottom pb-1">
+                <i class="fas fa-briefcase me-2"></i>Professional Experience
+            </h3>
+            ${renderExperienceSection(data.experience, template)}
+        </div>
+    `;
+}
+
+// Generate education section
+function generateEducationSection(data, template) {
+    if (!data.education || (Array.isArray(data.education) ? data.education.length === 0 : Object.keys(data.education).length === 0)) return '';
+    
+    return `
+        <div class="resume-section mb-4">
+            <h3 class="section-title h5 text-primary fw-bold mb-3 border-bottom pb-1">
+                <i class="fas fa-graduation-cap me-2"></i>Education
+            </h3>
+            ${renderEducationSection(data.education, template)}
+        </div>
+    `;
+}
+
+// Generate projects section
+function generateProjectsSection(data, template) {
+    if (!data.projects || (Array.isArray(data.projects) ? data.projects.length === 0 : Object.keys(data.projects).length === 0)) return '';
+    
+    return `
+        <div class="resume-section mb-4">
+            <h3 class="section-title h5 text-primary fw-bold mb-3 border-bottom pb-1">
+                <i class="fas fa-project-diagram me-2"></i>Projects
+            </h3>
+            ${renderProjectsSection(data.projects, template)}
+        </div>
+    `;
+}
+
+// Generate certifications section
+function generateCertificationsSection(data, template) {
+    if (!data.certifications || (Array.isArray(data.certifications) ? data.certifications.length === 0 : Object.keys(data.certifications).length === 0)) return '';
+    
+    return `
+        <div class="resume-section mb-4">
+            <h3 class="section-title h5 text-primary fw-bold mb-3 border-bottom pb-1">
+                <i class="fas fa-certificate me-2"></i>Certifications
+            </h3>
+            ${renderCertificationsSection(data.certifications, template)}
+        </div>
+    `;
 }
 
 // Helper function to render experience section
-function renderExperienceSection(experience) {
+function renderExperienceSection(experience, template = 'classic') {
     let experienceArray = [];
     
     if (Array.isArray(experience)) {
@@ -168,7 +234,7 @@ function renderExperienceSection(experience) {
 }
 
 // Helper function to render education section
-function renderEducationSection(education) {
+function renderEducationSection(education, template = 'classic') {
     let educationArray = [];
     
     if (Array.isArray(education)) {
@@ -194,7 +260,7 @@ function renderEducationSection(education) {
 }
 
 // Helper function to render projects section
-function renderProjectsSection(projects) {
+function renderProjectsSection(projects, template = 'classic') {
     let projectsArray = [];
     
     if (Array.isArray(projects)) {
@@ -209,19 +275,19 @@ function renderProjectsSection(projects) {
             <div class="row">
                 <div class="col-md-8">
                     <h4 class="h6 fw-bold mb-1">${proj.title}</h4>
-                    ${proj.techStack ? `<p class="tech-stack text-success mb-1"><i class="fas fa-code me-1"></i>${proj.techStack}</p>` : ''}
+                    ${proj.techStack ? `<p class="tech-stack text-primary mb-1"><i class="fas fa-tools me-1"></i>${proj.techStack}</p>` : ''}
                 </div>
                 <div class="col-md-4 text-md-end">
-                    ${proj.githubLink ? `<a href="${proj.githubLink}" target="_blank" class="btn btn-sm btn-outline-dark"><i class="fab fa-github me-1"></i>View Code</a>` : ''}
+                    ${proj.githubLink ? `<a href="${proj.githubLink}" target="_blank" class="text-decoration-none"><i class="fab fa-github me-1"></i>GitHub</a>` : ''}
                 </div>
             </div>
-            ${proj.description ? `<p class="description text-muted mb-0">${proj.description}</p>` : ''}
+            <p class="description text-muted mb-0">${proj.description}</p>
         </div>
     `).join('');
 }
 
 // Helper function to render certifications section
-function renderCertificationsSection(certifications) {
+function renderCertificationsSection(certifications, template = 'classic') {
     let certificationsArray = [];
     
     if (Array.isArray(certifications)) {
@@ -232,7 +298,7 @@ function renderCertificationsSection(certifications) {
     }
 
     return certificationsArray.map(cert => `
-        <div class="certification-item mb-2">
+        <div class="certification-item mb-3">
             <div class="row">
                 <div class="col-md-8">
                     <h4 class="h6 fw-bold mb-1">${cert.name}</h4>
@@ -246,61 +312,79 @@ function renderCertificationsSection(certifications) {
     `).join('');
 }
 
-// Function to download resume as PDF
-function downloadPDF() {
-    const element = document.getElementById('resumePreview');
-    const downloadBtn = document.getElementById('downloadPdfBtn');
+// Template switching functionality
+function switchTemplate(templateName) {
+    saveSelectedTemplate(templateName);
     
-    if (!element) {
-        alert('Resume preview not found. Please generate a preview first.');
+    // Get current resume data
+    const savedData = localStorage.getItem('resumeData');
+    if (savedData) {
+        try {
+            const data = JSON.parse(savedData);
+            renderResumePreview(data);
+            showAlert(`Switched to ${templateName.charAt(0).toUpperCase() + templateName.slice(1)} template`, 'success');
+        } catch (error) {
+            console.error('Error loading resume data for template switch:', error);
+        }
+    } else {
+        // Load placeholder data with new template
+        loadResumeData();
+    }
+}
+
+// PDF download function with template preservation
+function downloadPDF() {
+    const resumeContainer = document.querySelector('.resume-container');
+    
+    if (!resumeContainer) {
+        showAlert('No resume content to download', 'warning');
         return;
     }
 
-    // Show loading state
+    const downloadBtn = document.getElementById('downloadPdfBtn');
     const originalText = downloadBtn ? downloadBtn.innerHTML : '';
+    
     if (downloadBtn) {
+        // Show loading state
         downloadBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating PDF...';
         downloadBtn.disabled = true;
     }
 
-    // Configure PDF options
+    // Get current template for filename
+    const currentTemplate = getCurrentTemplate();
+    const filename = `resume_${currentTemplate}_${new Date().toISOString().split('T')[0]}.pdf`;
+
+    // PDF generation options
     const opt = {
         margin: [0.5, 0.5, 0.5, 0.5],
-        filename: 'resume.pdf',
+        filename: filename,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { 
             scale: 2,
             useCORS: true,
-            letterRendering: true
+            letterRendering: true,
+            removeContainer: true
         },
         jsPDF: { 
             unit: 'in', 
-            format: 'a4', 
-            orientation: 'portrait' 
+            format: 'letter', 
+            orientation: 'portrait',
+            compress: true
         }
     };
 
     // Generate PDF
-    html2pdf().set(opt).from(element).save().then(() => {
-        // Reset button state
-        if (downloadBtn) {
-            downloadBtn.innerHTML = originalText;
-            downloadBtn.disabled = false;
-        }
-        
-        // Show success message
+    html2pdf().set(opt).from(resumeContainer).save().then(() => {
         showAlert('PDF downloaded successfully!', 'success');
-    }).catch((error) => {
-        console.error('Error generating PDF:', error);
-        
+    }).catch(error => {
+        console.error('PDF generation failed:', error);
+        showAlert('Error generating PDF. Please try again.', 'danger');
+    }).finally(() => {
         // Reset button state
         if (downloadBtn) {
             downloadBtn.innerHTML = originalText;
             downloadBtn.disabled = false;
         }
-        
-        // Show error message
-        showAlert('Error generating PDF. Please try again.', 'danger');
     });
 }
 
@@ -405,10 +489,27 @@ function showAlert(message, type = 'info') {
 
 // Initialize preview when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
+    // Set initial template selection from localStorage
+    const savedTemplate = getCurrentTemplate();
+    const templateRadio = document.getElementById(`template-${savedTemplate}`);
+    if (templateRadio) {
+        templateRadio.checked = true;
+    }
+    
     // Load initial data
     loadResumeData();
     
-    // Add event listeners
+    // Add event listeners for template switching
+    const templateRadios = document.querySelectorAll('input[name="template"]');
+    templateRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            if (this.checked) {
+                switchTemplate(this.value);
+            }
+        });
+    });
+    
+    // Add event listeners for other buttons
     const downloadBtn = document.getElementById('downloadPdfBtn');
     if (downloadBtn) {
         downloadBtn.addEventListener('click', downloadPDF);
@@ -416,7 +517,22 @@ document.addEventListener('DOMContentLoaded', function() {
     
     const previewBtn = document.getElementById('previewBtn');
     if (previewBtn) {
-        previewBtn.addEventListener('click', saveAndPreview);
+        previewBtn.addEventListener('click', function() {
+            // Reload current data with current template
+            const savedData = localStorage.getItem('resumeData');
+            if (savedData) {
+                try {
+                    const data = JSON.parse(savedData);
+                    renderResumePreview(data);
+                    showAlert('Preview refreshed!', 'success');
+                } catch (error) {
+                    console.error('Error refreshing preview:', error);
+                    loadResumeData();
+                }
+            } else {
+                loadResumeData();
+            }
+        });
     }
 });
 
@@ -426,6 +542,9 @@ if (typeof module !== 'undefined' && module.exports) {
         renderResumePreview,
         downloadPDF,
         loadResumeData,
-        saveAndPreview
+        saveAndPreview,
+        switchTemplate,
+        getCurrentTemplate,
+        saveSelectedTemplate
     };
 }
