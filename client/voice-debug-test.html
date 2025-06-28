@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Debug Test</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="card">
+            <div class="card-header">
+                <h3>Voice Editor Debug Test</h3>
+            </div>
+            <div class="card-body">
+                <button id="testBtn" class="btn btn-primary mb-3">Test Voice Commands</button>
+                <div id="results" class="alert alert-info"></div>
+                
+                <!-- Test form fields -->
+                <form>
+                    <div class="mb-3">
+                        <label for="fullName" class="form-label">Name</label>
+                        <input type="text" id="fullName" name="fullName" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" id="email" name="email" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label for="phone" class="form-label">Phone</label>
+                        <input type="tel" id="phone" name="phone" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label for="keySkills" class="form-label">Skills</label>
+                        <input type="text" id="keySkills" name="keySkills" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label for="careerObjective" class="form-label">Objective</label>
+                        <textarea id="careerObjective" name="careerObjective" class="form-control" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('testBtn').addEventListener('click', function() {
+            const results = document.getElementById('results');
+            
+            // Test form field detection
+            const fields = {
+                'fullName': document.getElementById('fullName'),
+                'email': document.getElementById('email'),
+                'phone': document.getElementById('phone'),
+                'keySkills': document.getElementById('keySkills'),
+                'careerObjective': document.getElementById('careerObjective')
+            };
+            
+            let output = '<h5>Form Field Detection Test:</h5>';
+            for (const [name, field] of Object.entries(fields)) {
+                const status = field ? '✅ Found' : '❌ Not Found';
+                output += `<div>${name}: ${status}</div>`;
+            }
+            
+            // Test command processing
+            output += '<hr><h5>Command Processing Test:</h5>';
+            
+            const testCommands = [
+                "update my name to John Smith",
+                "change email to john@example.com",
+                "set phone number to 555-123-4567",
+                "add skill JavaScript",
+                "update my objective to seeking new opportunities"
+            ];
+            
+            testCommands.forEach(command => {
+                const processed = processTestCommand(command);
+                output += `<div><strong>"${command}"</strong> - ${processed ? '✅ Processed' : '❌ Failed'}</div>`;
+            });
+            
+            results.innerHTML = output;
+        });
+        
+        function processTestCommand(command) {
+            const lowerCommand = command.toLowerCase().trim();
+            console.log('Testing command:', command);
+            
+            try {
+                // Name test
+                if (lowerCommand.includes('name')) {
+                    const patterns = [
+                        /(?:update|change|set)\s+(?:my\s+)?name\s+to\s+(.+)/i,
+                        /(?:my\s+)?name\s+is\s+(.+)/i
+                    ];
+                    
+                    for (let pattern of patterns) {
+                        const match = command.match(pattern);
+                        if (match) {
+                            const name = match[1].trim();
+                            const field = document.getElementById('fullName');
+                            if (field) {
+                                field.value = name;
+                                field.style.backgroundColor = '#d4edda';
+                                return true;
+                            }
+                        }
+                    }
+                }
+                
+                // Email test
+                else if (lowerCommand.includes('email')) {
+                    const patterns = [
+                        /(?:update|change|set)\s+(?:my\s+)?email\s+(?:to\s+)?(.+)/i,
+                        /(?:my\s+)?email\s+is\s+(.+)/i
+                    ];
+                    
+                    for (let pattern of patterns) {
+                        const match = command.match(pattern);
+                        if (match) {
+                            const email = match[1].trim();
+                            const field = document.getElementById('email');
+                            if (field) {
+                                field.value = email;
+                                field.style.backgroundColor = '#d4edda';
+                                return true;
+                            }
+                        }
+                    }
+                }
+                
+                // Phone test
+                else if (lowerCommand.includes('phone') || lowerCommand.includes('number')) {
+                    const patterns = [
+                        /(?:update|change|set)\s+(?:my\s+)?(?:phone|number)\s+(?:to\s+)?(.+)/i,
+                        /(?:my\s+)?(?:phone|number)\s+is\s+(.+)/i
+                    ];
+                    
+                    for (let pattern of patterns) {
+                        const match = command.match(pattern);
+                        if (match) {
+                            const phone = match[1].trim();
+                            const field = document.getElementById('phone');
+                            if (field) {
+                                field.value = phone;
+                                field.style.backgroundColor = '#d4edda';
+                                return true;
+                            }
+                        }
+                    }
+                }
+                
+                // Skill test
+                else if (lowerCommand.includes('skill')) {
+                    const patterns = [
+                        /add\s+skill\s+(.+)/i,
+                        /(?:my\s+)?skill\s+is\s+(.+)/i
+                    ];
+                    
+                    for (let pattern of patterns) {
+                        const match = command.match(pattern);
+                        if (match) {
+                            const skill = match[1].trim();
+                            const field = document.getElementById('keySkills');
+                            if (field) {
+                                const current = field.value.trim();
+                                field.value = current ? current + ', ' + skill : skill;
+                                field.style.backgroundColor = '#d4edda';
+                                return true;
+                            }
+                        }
+                    }
+                }
+                
+                // Objective test
+                else if (lowerCommand.includes('objective') || lowerCommand.includes('summary')) {
+                    const patterns = [
+                        /(?:update|change|set)\s+(?:my\s+)?(?:objective|summary)\s+to\s+(.+)/i,
+                        /(?:my\s+)?(?:objective|summary)\s+is\s+(.+)/i
+                    ];
+                    
+                    for (let pattern of patterns) {
+                        const match = command.match(pattern);
+                        if (match) {
+                            const objective = match[1].trim();
+                            const field = document.getElementById('careerObjective');
+                            if (field) {
+                                field.value = objective;
+                                field.style.backgroundColor = '#d4edda';
+                                return true;
+                            }
+                        }
+                    }
+                }
+                
+                return false;
+            } catch (error) {
+                console.error('Error processing command:', error);
+                return false;
+            }
+        }
+    </script>
+</body>
+</html>

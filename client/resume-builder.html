@@ -78,6 +78,18 @@
     <div class="container-fluid">
         <div class="row">
             <div class="col-12">
+                <!-- Voice Editor Announcement Banner -->
+                <div class="alert alert-info alert-dismissible fade show" role="alert">
+                    <h6 class="alert-heading mb-2">
+                        <i class="fas fa-microphone-alt me-2"></i>🎙️ NEW FEATURE: Voice-Driven Resume Editing!
+                    </h6>
+                    <p class="mb-1">You can now edit your resume using voice commands! Look for the <strong>"Start Voice Editing"</strong> button below.</p>
+                    <small class="text-muted">
+                        Try saying: "Update my name to John Smith" or "Add skill JavaScript" • Works best in Chrome browser
+                    </small>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                
                 <!-- Saved Resumes Section -->
                 <div class="card shadow-sm mb-4" id="savedResumesCard">
                     <div class="card-header bg-info text-white">
@@ -106,6 +118,17 @@
                         <h2><i class="fas fa-file-alt me-2"></i>Smart Resume Builder</h2>
                         <p class="mb-0">Create your professional resume with ease</p>
                     </div>
+                    
+                    <!-- Voice Editor Section -->
+                    <div id="voiceEditorSection" class="card-body border-bottom">
+                        <div class="text-center py-3">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading Voice Editor...</span>
+                            </div>
+                            <p class="mt-2 text-muted">Initializing Voice Editor...</p>
+                        </div>
+                    </div>
+                    
                     <div class="card-body">
                         <form id="resumeForm" novalidate>
                             <!-- Personal Information Section -->
@@ -405,5 +428,64 @@
     <script src="script.js"></script>
     <script src="ats.js"></script>
     <script src="auth.js"></script>
+    <script src="voiceEditor.js"></script>
+    
+    <script>
+        // Initialize Voice Editor when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 DOM loaded, initializing Voice Editor...');
+            console.log('📦 Checking VoiceEditor availability...');
+            console.log('typeof VoiceEditor:', typeof VoiceEditor);
+            console.log('typeof window.VoiceEditor:', typeof window.VoiceEditor);
+            
+            // Wait for scripts to load
+            function attemptInit(attempt = 1) {
+                console.log(`🔄 Initialization attempt ${attempt}`);
+                
+                if (typeof VoiceEditor !== 'undefined' && typeof VoiceEditor.init === 'function') {
+                    try {
+                        console.log('📞 Calling VoiceEditor.init()...');
+                        const success = VoiceEditor.init();
+                        if (success) {
+                            console.log('✅ Voice Editor initialized successfully');
+                        } else {
+                            console.warn('⚠️ Voice Editor init returned false');
+                            showFallbackMessage('Voice Editor initialization returned false');
+                        }
+                    } catch (error) {
+                        console.error('❌ Voice Editor initialization failed:', error);
+                        showFallbackMessage('Voice Editor initialization failed: ' + error.message);
+                    }
+                } else if (attempt < 10) {
+                    console.log(`⏳ VoiceEditor not ready yet, retrying in ${attempt * 100}ms...`);
+                    setTimeout(() => attemptInit(attempt + 1), attempt * 100);
+                } else {
+                    console.error('❌ VoiceEditor failed to load after multiple attempts');
+                    console.log('Available window properties:', Object.keys(window).filter(k => k.toLowerCase().includes('voice')));
+                    showFallbackMessage('Voice Editor failed to load. Please refresh the page.');
+                }
+            }
+            
+            function showFallbackMessage(errorMessage) {
+                const voiceSection = document.getElementById('voiceEditorSection');
+                if (voiceSection) {
+                    voiceSection.innerHTML = `
+                        <div class="alert alert-warning text-center">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Voice Editor Issue:</strong> ${errorMessage}
+                            <br><small class="mt-2 d-block">
+                                <button class="btn btn-sm btn-outline-primary mt-2" onclick="location.reload()">
+                                    <i class="fas fa-sync-alt me-1"></i>Refresh Page
+                                </button>
+                            </small>
+                        </div>
+                    `;
+                }
+            }
+            
+            // Start initialization
+            attemptInit();
+        });
+    </script>
 </body>
 </html>

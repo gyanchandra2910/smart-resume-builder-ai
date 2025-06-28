@@ -110,6 +110,22 @@ app.get('/review.html', (req, res) => {
     res.sendFile(path.join(__dirname, '../client/review.html'));
 });
 
+app.get('/voice-demo.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../client/voice-demo.html'));
+});
+
+app.get('/voice-demo-final.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../client/voice-demo-final.html'));
+});
+
+app.get('/voice-test-simple.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../client/voice-test-simple.html'));
+});
+
+app.get('/voice-debug-test.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../client/voice-debug-test.html'));
+});
+
 app.get('/test-review-ui.html', (req, res) => {
     res.sendFile(path.join(__dirname, '../test-review-ui.html'));
 });
@@ -117,6 +133,20 @@ app.get('/test-review-ui.html', (req, res) => {
 // Serve frontend for root route
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '../client/index.html'));
+});
+
+// Voice editor test pages
+app.get('/voice-load-test.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../client/voice-load-test.html'));
+});
+
+app.get('/voice-comprehensive-test.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../client/voice-comprehensive-test.html'));
+});
+
+// Voice debug test route
+app.get('/voice-debug-isolated.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../client/voice-debug-isolated.html'));
 });
 
 // MongoDB connection
