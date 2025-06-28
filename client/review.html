@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resume Review - Smart Resume Builder AI</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .star-rating {
+            display: flex;
+            gap: 5px;
+            font-size: 1.5rem;
+        }
+        
+        .star {
+            color: #ddd;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        
+        .star.active,
+        .star:hover {
+            color: #ffc107;
+        }
+        
+        .star:hover ~ .star {
+            color: #ddd;
+        }
+        
+        .reviewer-mode-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        
+        .review-panel {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .flag-checkbox {
+            margin: 5px;
+        }
+        
+        .xp-badge {
+            background: linear-gradient(45deg, #ffd700, #ffed4e);
+            color: #000;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+        
+        .level-badge {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+        
+        .badge-achievement {
+            background: linear-gradient(45deg, #ff6b6b, #feca57);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            margin: 2px;
+            display: inline-block;
+        }
+        
+        .review-stats {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        
+        .resume-preview {
+            max-height: 70vh;
+            overflow-y: auto;
+            border: 2px solid #dee2e6;
+            border-radius: 10px;
+            padding: 20px;
+            background: white;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <!-- Recruiter Mode Toggle -->
+    <div class="reviewer-mode-toggle">
+        <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="recruiterModeToggle" style="transform: scale(1.5);">
+            <label class="form-check-label fw-bold text-primary" for="recruiterModeToggle">
+                <i class="fas fa-user-tie me-1"></i>Recruiter Mode
+            </label>
+        </div>
+    </div>
+
+    <div class="container-fluid py-4">
+        <div class="row">
+            <!-- Resume Preview Column -->
+            <div class="col-lg-8">
+                <!-- Available Resumes Section (shown in recruiter mode) -->
+                <div class="card mb-4" id="resumeListSection" style="display: none;">
+                    <div class="card-header bg-info text-white">
+                        <h4 class="mb-0">
+                            <i class="fas fa-list me-2"></i>Available Resumes to Review
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <div id="resumesList">
+                            <!-- List of resumes will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Selected Resume Preview -->
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h4 class="mb-0">
+                            <i class="fas fa-file-alt me-2"></i>Resume Preview
+                        </h4>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="resumePreview" class="resume-preview">
+                            <!-- Resume content will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Existing Reviews Section -->
+                <div class="card mt-4" id="reviewsSection" style="display: none;">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-comments me-2"></i>Reviews & Feedback
+                        </h5>
+                    </div>
+                    <div class="card-body" id="reviewsList">
+                        <!-- Reviews will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Review Panel Column -->
+            <div class="col-lg-4">
+                <div id="reviewPanel" class="review-panel p-4" style="display: none;">
+                    <h4 class="text-center mb-4">
+                        <i class="fas fa-star me-2"></i>Review This Resume
+                    </h4>
+
+                    <!-- Reviewer Stats -->
+                    <div class="review-stats text-center" id="reviewerStats">
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="xp-badge">XP: <span id="userXP">0</span></div>
+                            </div>
+                            <div class="col-6">
+                                <div class="level-badge">Level <span id="userLevel">1</span></div>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <small>Reviews: <span id="userReviews">0</span></small>
+                        </div>
+                        <div id="userBadges" class="mt-2">
+                            <!-- Badges will be displayed here -->
+                        </div>
+                    </div>
+
+                    <!-- Review Form -->
+                    <form id="reviewForm">
+                        <!-- Hidden fields for IDs -->
+                        <input type="hidden" id="reviewerId" value="67759a1b2c3d4e5f6789abcd">
+                        <input type="hidden" id="reviewedUserId" value="">
+                        <input type="hidden" id="resumeId" value="">
+
+                        <!-- Resume Selection Info -->
+                        <div class="mb-3" id="selectedResumeInfo" style="display: none;">
+                            <div class="alert alert-info">
+                                <strong>Selected Resume:</strong> <span id="selectedResumeName"></span>
+                            </div>
+                        </div>
+
+                        <!-- Star Rating -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Rating (1-5 stars)</label>
+                            <div class="star-rating" id="starRating">
+                                <i class="fas fa-star star" data-rating="1"></i>
+                                <i class="fas fa-star star" data-rating="2"></i>
+                                <i class="fas fa-star star" data-rating="3"></i>
+                                <i class="fas fa-star star" data-rating="4"></i>
+                                <i class="fas fa-star star" data-rating="5"></i>
+                            </div>
+                            <input type="hidden" id="selectedRating" value="0">
+                            <small class="text-light">Click stars to rate</small>
+                        </div>
+
+                        <!-- Feedback Textarea -->
+                        <div class="mb-4">
+                            <label for="feedback" class="form-label fw-bold">Detailed Feedback</label>
+                            <textarea class="form-control" id="feedback" rows="5" 
+                                      placeholder="Provide constructive feedback on the resume content, structure, and presentation..."
+                                      required minlength="10" maxlength="2000"></textarea>
+                            <small class="text-light">10-2000 characters</small>
+                        </div>
+
+                        <!-- Flags/Issues Checkboxes -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Common Issues (Check all that apply)</label>
+                            <div class="row">
+                                <div class="col-6">
+                                    <div class="form-check flag-checkbox">
+                                        <input class="form-check-input" type="checkbox" value="weak verbs" id="flag1">
+                                        <label class="form-check-label text-light" for="flag1">Weak verbs</label>
+                                    </div>
+                                    <div class="form-check flag-checkbox">
+                                        <input class="form-check-input" type="checkbox" value="missing metrics" id="flag2">
+                                        <label class="form-check-label text-light" for="flag2">Missing metrics</label>
+                                    </div>
+                                    <div class="form-check flag-checkbox">
+                                        <input class="form-check-input" type="checkbox" value="unclear objectives" id="flag3">
+                                        <label class="form-check-label text-light" for="flag3">Unclear objectives</label>
+                                    </div>
+                                    <div class="form-check flag-checkbox">
+                                        <input class="form-check-input" type="checkbox" value="formatting issues" id="flag4">
+                                        <label class="form-check-label text-light" for="flag4">Formatting issues</label>
+                                    </div>
+                                    <div class="form-check flag-checkbox">
+                                        <input class="form-check-input" type="checkbox" value="grammatical errors" id="flag5">
+                                        <label class="form-check-label text-light" for="flag5">Grammar errors</label>
+                                    </div>
+                                    <div class="form-check flag-checkbox">
+                                        <input class="form-check-input" type="checkbox" value="irrelevant information" id="flag6">
+                                        <label class="form-check-label text-light" for="flag6">Irrelevant info</label>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="form-check flag-checkbox">
+                                        <input class="form-check-input" type="checkbox" value="missing key skills" id="flag7">
+                                        <label class="form-check-label text-light" for="flag7">Missing skills</label>
+                                    </div>
+                                    <div class="form-check flag-checkbox">
+                                        <input class="form-check-input" type="checkbox" value="insufficient experience detail" id="flag8">
+                                        <label class="form-check-label text-light" for="flag8">Lacks detail</label>
+                                    </div>
+                                    <div class="form-check flag-checkbox">
+                                        <input class="form-check-input" type="checkbox" value="poor structure" id="flag9">
+                                        <label class="form-check-label text-light" for="flag9">Poor structure</label>
+                                    </div>
+                                    <div class="form-check flag-checkbox">
+                                        <input class="form-check-input" type="checkbox" value="typos" id="flag10">
+                                        <label class="form-check-label text-light" for="flag10">Typos</label>
+                                    </div>
+                                    <div class="form-check flag-checkbox">
+                                        <input class="form-check-input" type="checkbox" value="outdated information" id="flag11">
+                                        <label class="form-check-label text-light" for="flag11">Outdated info</label>
+                                    </div>
+                                    <div class="form-check flag-checkbox">
+                                        <input class="form-check-input" type="checkbox" value="missing contact info" id="flag12">
+                                        <label class="form-check-label text-light" for="flag12">Missing contact</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <button type="submit" class="btn btn-light btn-lg w-100" id="submitReviewBtn">
+                            <i class="fas fa-paper-plane me-2"></i>Submit Review
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Quick Actions Panel -->
+                <div class="card mt-4">
+                    <div class="card-header bg-secondary text-white">
+                        <h6 class="mb-0">
+                            <i class="fas fa-bolt me-2"></i>Quick Actions
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-primary btn-sm w-100 mb-2" onclick="loadDemoResume()">
+                            <i class="fas fa-eye me-1"></i>Load Demo Resume
+                        </button>
+                        <button class="btn btn-info btn-sm w-100 mb-2" onclick="showLeaderboard()">
+                            <i class="fas fa-trophy me-1"></i>View Leaderboard
+                        </button>
+                        <button class="btn btn-success btn-sm w-100" onclick="showMyReviews()">
+                            <i class="fas fa-history me-1"></i>My Reviews
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div class="modal fade" id="successModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-check-circle me-2"></i>Review Submitted!
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="successModalBody">
+                    <!-- Success content will be inserted here -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Continue Reviewing</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="review.js"></script>
+</body>
+</html>

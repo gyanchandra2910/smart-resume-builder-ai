@@ -11,6 +11,7 @@ const authRoutes = require('./routes/auth');
 const resumeRoutes = require('./routes/resume');
 const aiRoutes = require('./routes/ai');
 const atsRoutes = require('./routes/ats');
+const reviewRoutes = require('./routes/review');
 
 // Import Resume model for public view
 const Resume = require('./models/Resume');
@@ -82,6 +83,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/resume', resumeRoutes);
 app.use('/api/resume', aiRoutes);
 app.use('/api/resume', atsRoutes);
+app.use('/api/review', reviewRoutes);
 
 // Serve specific HTML files
 app.get('/login.html', (req, res) => {
@@ -102,6 +104,14 @@ app.get('/preview.html', (req, res) => {
 
 app.get('/ats-check.html', (req, res) => {
     res.sendFile(path.join(__dirname, '../client/ats-check.html'));
+});
+
+app.get('/review.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../client/review.html'));
+});
+
+app.get('/test-review-ui.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../test-review-ui.html'));
 });
 
 // Serve frontend for root route

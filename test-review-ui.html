@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Review System Test - Smart Resume Builder AI</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1>Review System Test Page</h1>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Test Functions</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-primary me-2 mb-2" onclick="testLoadResumes()">Test Load Resumes</button>
+                        <button class="btn btn-success me-2 mb-2" onclick="testSubmitReview()">Test Submit Review</button>
+                        <button class="btn btn-info me-2 mb-2" onclick="testReviewerStats()">Test Reviewer Stats</button>
+                        <button class="btn btn-warning mb-2" onclick="testLeaderboard()">Test Leaderboard</button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Test Results</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="results" style="height: 400px; overflow-y: auto; font-family: monospace; font-size: 12px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Quick Links</h5>
+                    </div>
+                    <div class="card-body">
+                        <a href="/review.html" class="btn btn-primary me-2">Go to Review Page</a>
+                        <a href="/preview.html" class="btn btn-secondary">Go to Preview Page</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function log(message, type = 'info') {
+            const results = document.getElementById('results');
+            const timestamp = new Date().toLocaleTimeString();
+            const color = type === 'error' ? 'red' : type === 'success' ? 'green' : 'blue';
+            results.innerHTML += `<div style="color: ${color};">[${timestamp}] ${message}</div>`;
+            results.scrollTop = results.scrollHeight;
+        }
+
+        async function testLoadResumes() {
+            try {
+                log('Testing resume loading...', 'info');
+                const response = await fetch('/api/resume');
+                const result = await response.json();
+                
+                if (result.success) {
+                    log(`✅ Resumes loaded: ${result.data.length} resumes found`, 'success');
+                    log(`First resume: ${JSON.stringify(result.data[0], null, 2)}`, 'info');
+                } else {
+                    log(`❌ Failed to load resumes: ${result.message}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Error loading resumes: ${error.message}`, 'error');
+            }
+        }
+
+        async function testSubmitReview() {
+            try {
+                log('Testing review submission...', 'info');
+                
+                const reviewData = {
+                    reviewerId: '67759a1b2c3d4e5f6789abcd',
+                    reviewedUserId: '67759a1b2c3d4e5f6789abce',
+                    resumeId: '67759a1b2c3d4e5f6789abc0',
+                    score: 4,
+                    feedback: 'This is a test review for the demo resume. The candidate shows good technical skills and experience with modern web technologies.',
+                    flags: ['missing metrics', 'weak verbs']
+                };
+                
+                log(`Submitting review data: ${JSON.stringify(reviewData, null, 2)}`, 'info');
+                
+                const response = await fetch('/api/review/submit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(reviewData)
+                });
+                
+                const result = await response.json();
+                log(`Response status: ${response.status}`, 'info');
+                log(`Response: ${JSON.stringify(result, null, 2)}`, 'info');
+                
+                if (result.success) {
+                    log(`✅ Review submitted successfully!`, 'success');
+                    log(`XP gained: ${result.data.xpGained}, Level: ${result.data.newLevel}`, 'success');
+                } else {
+                    log(`❌ Review submission failed: ${result.message}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Error submitting review: ${error.message}`, 'error');
+            }
+        }
+
+        async function testReviewerStats() {
+            try {
+                log('Testing reviewer stats...', 'info');
+                const response = await fetch('/api/review/reviewer/67759a1b2c3d4e5f6789abcd/stats');
+                const result = await response.json();
+                
+                if (result.success) {
+                    log(`✅ Reviewer stats: XP: ${result.data.totalXP}, Level: ${result.data.level}, Reviews: ${result.data.totalReviews}`, 'success');
+                    log(`Stats: ${JSON.stringify(result.data, null, 2)}`, 'info');
+                } else {
+                    log(`❌ Failed to get stats: ${result.message}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Error getting stats: ${error.message}`, 'error');
+            }
+        }
+
+        async function testLeaderboard() {
+            try {
+                log('Testing leaderboard...', 'info');
+                const response = await fetch('/api/review/leaderboard');
+                const result = await response.json();
+                
+                if (result.success) {
+                    log(`✅ Leaderboard: ${result.data.length} entries`, 'success');
+                    log(`Leaderboard: ${JSON.stringify(result.data, null, 2)}`, 'info');
+                } else {
+                    log(`❌ Failed to get leaderboard: ${result.message}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Error getting leaderboard: ${error.message}`, 'error');
+            }
+        }
+
+        // Auto-run tests on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            log('=== Review System Test Page Loaded ===', 'info');
+            log('Click the buttons above to test different functions', 'info');
+        });
+    </script>
+</body>
+</html>

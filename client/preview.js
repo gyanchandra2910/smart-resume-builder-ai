@@ -1409,12 +1409,34 @@ if (typeof module !== 'undefined' && module.exports) {
         loadResumeById,
         shareResumeById,
         deleteResumeById,
-        forceLoadDemoData,
-        saveResume,
-        loadSavedResumes,
-        loadResumeById,
-        shareResumeById,
-        deleteResumeById,
         forceLoadDemoData
     };
 }
+
+// Open review mode function
+function openReviewMode() {
+    const currentResumeId = getCurrentResumeId();
+    const url = currentResumeId 
+        ? `/review.html?resumeId=${currentResumeId}`
+        : '/review.html';
+    
+    window.open(url, '_blank');
+}
+
+// Helper function to get current resume ID
+function getCurrentResumeId() {
+    // Try to get from URL parameters first
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlResumeId = urlParams.get('id');
+    if (urlResumeId) return urlResumeId;
+    
+    // Try to get from localStorage
+    const savedResumeId = localStorage.getItem('currentResumeId');
+    if (savedResumeId) return savedResumeId;
+    
+    // Return null if no resume ID found
+    return null;
+}
+
+// Make openReviewMode globally available
+window.openReviewMode = openReviewMode;
