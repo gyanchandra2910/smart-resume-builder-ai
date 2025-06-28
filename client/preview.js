@@ -912,8 +912,12 @@ function generateCoverLetterAPI(resumeData, targetRole, companyName, resumeSumma
     .then(response => response.json())
     .then(result => {
         if (result.success) {
-            showCoverLetterModal(result.data.coverLetter, targetRole, companyName);
-            showAlert('Cover letter generated successfully!', 'success');
+            showCoverLetterModal(result.data.coverLetter, targetRole, companyName, result.data.isTemplate);
+            if (result.data.isTemplate) {
+                showAlert('Cover letter generated using template (AI service temporarily unavailable)', 'warning');
+            } else {
+                showAlert('Cover letter generated successfully using AI!', 'success');
+            }
         } else {
             showAlert('Error generating cover letter: ' + result.message, 'danger');
         }
@@ -931,30 +935,41 @@ function generateCoverLetterAPI(resumeData, targetRole, companyName, resumeSumma
 }
 
 // Show cover letter result modal
-function showCoverLetterModal(coverLetter, role, companyName) {
+function showCoverLetterModal(coverLetter, role, companyName, isTemplate = false) {
     // Remove existing modal if any
     const existingModal = document.getElementById('coverLetterModal');
     if (existingModal) {
         existingModal.remove();
     }
 
+    const headerClass = isTemplate ? 'bg-warning text-dark' : 'bg-success text-white';
+    const iconClass = isTemplate ? 'fas fa-file-contract' : 'fas fa-robot';
+    const titleSuffix = isTemplate ? ' (Template)' : ' (AI Generated)';
+
     // Create modal HTML
     const modalHTML = `
         <div class="modal fade" id="coverLetterModal" tabindex="-1" aria-labelledby="coverLetterModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-xl">
                 <div class="modal-content">
-                    <div class="modal-header bg-success text-white">
+                    <div class="modal-header ${headerClass}">
                         <h5 class="modal-title" id="coverLetterModalLabel">
-                            <i class="fas fa-file-alt me-2"></i>Generated Cover Letter
+                            <i class="${iconClass} me-2"></i>Generated Cover Letter${titleSuffix}
                             ${companyName ? `- ${companyName}` : ''} (${role})
                         </h5>
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        <div class="alert alert-success">
-                            <i class="fas fa-check-circle me-2"></i>
-                            <strong>Success!</strong> Your cover letter has been generated. You can copy and customize it as needed.
+                        ${isTemplate ? `
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Template Generated:</strong> AI service is temporarily unavailable due to quota limits. This cover letter was generated using a professional template and can be customized as needed.
                         </div>
+                        ` : `
+                        <div class="alert alert-success">
+                            <i class="fas fa-robot me-2"></i>
+                            <strong>AI Generated:</strong> This cover letter was created using artificial intelligence and tailored to your resume and target role.
+                        </div>
+                        `}
                         
                         <div class="mb-3">
                             <label for="coverLetterText" class="form-label fw-bold">Cover Letter:</label>
@@ -975,7 +990,7 @@ function showCoverLetterModal(coverLetter, role, companyName) {
                             </div>
                             <div class="col-md-4 mb-2">
                                 <button class="btn btn-info w-100" onclick="regenerateCoverLetter()">
-                                    <i class="fas fa-sync-alt me-2"></i>Generate New Version
+                                    <i class="fas fa-sync-alt me-2"></i>${isTemplate ? 'Try AI Again' : 'Generate New Version'}
                                 </button>
                             </div>
                         </div>

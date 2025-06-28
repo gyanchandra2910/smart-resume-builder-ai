@@ -329,44 +329,58 @@ Requirements:
 
 Format: Return only the cover letter text, no additional formatting or explanations.`;
 
-        const completion = await openai.chat.completions.create({
-            model: "gpt-3.5-turbo",
-            messages: [
-                {
-                    role: "system",
-                    content: "You are a professional career counselor and expert writer specializing in creating compelling cover letters. Write professional, personalized cover letters that highlight relevant experience and skills for specific roles."
-                },
-                {
-                    role: "user",
-                    content: prompt
-                }
-            ],
-            max_tokens: 800,
-            temperature: 0.7
-        });
+        let coverLetter;
+        let isTemplate = false;
 
-        const coverLetter = completion.choices[0].message.content.trim();
+        try {
+            const completion = await openai.chat.completions.create({
+                model: "gpt-3.5-turbo",
+                messages: [
+                    {
+                        role: "system",
+                        content: "You are a professional career counselor and expert writer specializing in creating compelling cover letters. Write professional, personalized cover letters that highlight relevant experience and skills for specific roles."
+                    },
+                    {
+                        role: "user",
+                        content: prompt
+                    }
+                ],
+                max_tokens: 800,
+                temperature: 0.7
+            });
+
+            coverLetter = completion.choices[0].message.content.trim();
+        } catch (openaiError) {
+            console.log('OpenAI API failed, generating template cover letter:', openaiError.message);
+            
+            // Generate template-based cover letter as fallback
+            coverLetter = generateTemplateCoverLetter({
+                role,
+                companyName,
+                fullName,
+                experienceText,
+                skillsText,
+                resumeSummary
+            });
+            isTemplate = true;
+        }
 
         res.json({
             success: true,
             data: {
                 coverLetter,
                 role,
-                companyName: companyName || null
+                companyName: companyName || null,
+                isTemplate
             },
-            message: 'Cover letter generated successfully'
+            message: isTemplate 
+                ? 'Cover letter generated using template (AI service temporarily unavailable)'
+                : 'Cover letter generated successfully using AI'
         });
 
     } catch (error) {
         console.error('Error generating cover letter:', error);
         
-        if (error.code === 'insufficient_quota' || error.message?.includes('quota')) {
-            return res.status(429).json({
-                success: false,
-                message: 'OpenAI API quota exceeded. Please try again later.'
-            });
-        }
-
         res.status(500).json({
             success: false,
             message: 'Error generating cover letter. Please try again.',
@@ -706,6 +720,29 @@ const generatePublicResumeContent = (resume) => {
             ` : ''}
         </div>
     `;
+};
+
+// Helper function to generate template-based cover letter
+const generateTemplateCoverLetter = ({ role, companyName, fullName, experienceText, skillsText, resumeSummary }) => {
+    const company = companyName || 'your organization';
+    const position = role || 'this position';
+    const name = fullName || 'the candidate';
+    
+    return `Dear Hiring Manager,
+
+I am writing to express my strong interest in the ${position} position${companyName ? ` at ${companyName}` : ''}. With my background in software development and proven track record of delivering high-quality solutions, I am confident that I would be a valuable addition to your team.
+
+${resumeSummary ? 
+    `${resumeSummary} This experience has prepared me well for the challenges and opportunities that come with the ${position} role.` :
+    `My professional experience includes ${experienceText || 'developing technical solutions and working collaboratively in team environments'}. This background has equipped me with both the technical skills and collaborative mindset necessary to excel in the ${position} role.`
+}
+
+I bring expertise in ${skillsText || 'modern development technologies and best practices'}, along with a passion for creating efficient, scalable solutions. I am particularly drawn to ${company} because of your reputation for innovation and commitment to excellence. I am excited about the opportunity to contribute to your team's success while continuing to grow my technical abilities.
+
+I would welcome the opportunity to discuss how my skills and enthusiasm can contribute to your team. Thank you for considering my application. I look forward to hearing from you soon.
+
+Sincerely,
+${name}`;
 };
 
 module.exports = {
