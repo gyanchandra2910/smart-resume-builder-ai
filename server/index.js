@@ -37,6 +37,10 @@ app.get('/resume-builder.html', (req, res) => {
     res.sendFile(path.join(__dirname, '../client/resume-builder.html'));
 });
 
+app.get('/preview.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../client/preview.html'));
+});
+
 // Serve frontend for root route
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '../client/index.html'));

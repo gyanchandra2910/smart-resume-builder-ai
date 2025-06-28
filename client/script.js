@@ -642,4 +642,78 @@ document.addEventListener('DOMContentLoaded', function() {
             // window.location.href = '/login.html';
         }
     }
+
+    // Preview Resume functionality
+    const previewBtn = document.getElementById('previewResumeBtn');
+    if (previewBtn) {
+        previewBtn.addEventListener('click', previewResume);
+    }
+
+    function previewResume() {
+        // Collect current form data
+        const formData = new FormData(form);
+        const resumeData = {};
+
+        // Process basic form data
+        for (let [key, value] of formData.entries()) {
+            if (!key.includes('[')) {
+                resumeData[key] = value;
+            }
+        }
+
+        // Process nested form data (education, experience, etc.)
+        const education = {};
+        const experience = {};
+        const certifications = {};
+        const projects = {};
+
+        for (let [key, value] of formData.entries()) {
+            if (key.includes('education[')) {
+                const match = key.match(/education\[(\d+)\]\[(\w+)\]/);
+                if (match) {
+                    const index = match[1];
+                    const field = match[2];
+                    if (!education[index]) education[index] = {};
+                    education[index][field] = value;
+                }
+            } else if (key.includes('experience[')) {
+                const match = key.match(/experience\[(\d+)\]\[(\w+)\]/);
+                if (match) {
+                    const index = match[1];
+                    const field = match[2];
+                    if (!experience[index]) experience[index] = {};
+                    experience[index][field] = value;
+                }
+            } else if (key.includes('certifications[')) {
+                const match = key.match(/certifications\[(\d+)\]\[(\w+)\]/);
+                if (match) {
+                    const index = match[1];
+                    const field = match[2];
+                    if (!certifications[index]) certifications[index] = {};
+                    certifications[index][field] = value;
+                }
+            } else if (key.includes('projects[')) {
+                const match = key.match(/projects\[(\d+)\]\[(\w+)\]/);
+                if (match) {
+                    const index = match[1];
+                    const field = match[2];
+                    if (!projects[index]) projects[index] = {};
+                    projects[index][field] = value;
+                }
+            }
+        }
+
+        // Add processed data
+        resumeData.education = education;
+        resumeData.experience = experience;
+        resumeData.certifications = certifications;
+        resumeData.projects = projects;
+        resumeData.skills = skillsArray;
+
+        // Save to localStorage
+        localStorage.setItem('resumeData', JSON.stringify(resumeData));
+
+        // Open preview page
+        window.open('/preview.html', '_blank');
+    }
 });
