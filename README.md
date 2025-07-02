@@ -4,6 +4,14 @@
 
 **Smart Resume Builder AI** is a comprehensive, AI-powered resume building platform that helps job seekers create professional resumes, optimize them for ATS systems, generate personalized cover letters, and practice with AI-generated interview questions. Built with modern web technologies and powered by OpenAI's GPT models.
 
+## 🎬 Demo Video
+
+Watch our comprehensive demo to see all features in action:
+
+[![Smart Resume Builder AI Demo](https://img.youtube.com/vi/i-GdJRHaLZQ/maxresdefault.jpg)](https://youtu.be/i-GdJRHaLZQ)
+
+**[🎥 Watch Full Demo on YouTube](https://youtu.be/i-GdJRHaLZQ)**
+
 ## 📊 Application Flow
 
 ```mermaid
