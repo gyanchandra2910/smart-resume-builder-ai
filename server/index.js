@@ -76,10 +76,7 @@ app.get('/resume/:id', async (req, res) => {
     }
 });
 
-// Serve static files from client directory
-app.use(express.static(path.join(__dirname, '../client')));
-
-// API Routes
+// API Routes (must be before static serving)
 app.use('/api/auth', authRoutes);
 app.use('/api/resume', resumeRoutes);
 app.use('/api/resume', aiRoutes);
@@ -87,73 +84,36 @@ app.use('/api/resume', atsRoutes);
 app.use('/api/review', reviewRoutes);
 app.use('/api/interview', interviewRoutes);
 
-// Serve specific HTML files
-app.get('/login.html', (req, res) => {
-    res.sendFile(path.join(__dirname, '../client/login.html'));
-});
+// Serve React production build (client/dist) — only in production
+// In development, the Vite dev server on port 5173 handles the frontend
+const clientDistPath = path.join(__dirname, '../client/dist');
+const fs = require('fs');
+if (process.env.NODE_ENV === 'production' && fs.existsSync(clientDistPath)) {
+    app.use(express.static(clientDistPath));
+    // Express 5 compatible SPA fallback
+    app.use((req, res, next) => {
+        if (!req.path.startsWith('/api') && !req.path.startsWith('/resume')) {
+            res.sendFile(path.join(clientDistPath, 'index.html'));
+        } else {
+            next();
+        }
+    });
+} else {
+    app.get('/', (req, res) => {
+        res.json({
+            message: 'Smart Resume Builder AI — API Server is running on port 5000.',
+            frontend: 'Start the Vite dev server: cd client && npm run dev',
+            endpoints: {
+                auth: '/api/auth/signup | /api/auth/login',
+                resume: '/api/resume/input | /api/resume/:id',
+                ai: '/api/resume/generateSummary | /api/resume/generateCoverLetter',
+                ats: '/api/resume/ats-check',
+                interview: '/api/interview/questions'
+            }
+        });
+    });
+}
 
-app.get('/register.html', (req, res) => {
-    res.sendFile(path.join(__dirname, '../client/register.html'));
-});
-
-app.get('/resume-builder.html', (req, res) => {
-    res.sendFile(path.join(__dirname, '../client/resume-builder.html'));
-});
-
-app.get('/preview.html', (req, res) => {
-    res.sendFile(path.join(__dirname, '../client/preview.html'));
-});
-
-app.get('/ats-check.html', (req, res) => {
-    res.sendFile(path.join(__dirname, '../client/ats-check.html'));
-});
-
-app.get('/review.html', (req, res) => {
-    res.sendFile(path.join(__dirname, '../client/review.html'));
-});
-
-app.get('/interview-questions.html', (req, res) => {
-    res.sendFile(path.join(__dirname, '../client/interview-questions.html'));
-});
-
-app.get('/voice-demo.html', (req, res) => {
-    res.sendFile(path.join(__dirname, '../client/voice-demo.html'));
-});
-
-app.get('/voice-demo-final.html', (req, res) => {
-    res.sendFile(path.join(__dirname, '../client/voice-demo-final.html'));
-});
-
-app.get('/voice-test-simple.html', (req, res) => {
-    res.sendFile(path.join(__dirname, '../client/voice-test-simple.html'));
-});
-
-app.get('/voice-debug-test.html', (req, res) => {
-    res.sendFile(path.join(__dirname, '../client/voice-debug-test.html'));
-});
-
-app.get('/test-review-ui.html', (req, res) => {
-    res.sendFile(path.join(__dirname, '../test-review-ui.html'));
-});
-
-// Serve frontend for root route
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, '../client/index.html'));
-});
-
-// Voice editor test pages
-app.get('/voice-load-test.html', (req, res) => {
-    res.sendFile(path.join(__dirname, '../client/voice-load-test.html'));
-});
-
-app.get('/voice-comprehensive-test.html', (req, res) => {
-    res.sendFile(path.join(__dirname, '../client/voice-comprehensive-test.html'));
-});
-
-// Voice debug test route
-app.get('/voice-debug-isolated.html', (req, res) => {
-    res.sendFile(path.join(__dirname, '../client/voice-debug-isolated.html'));
-});
 
 // MongoDB connection
 mongoose.connect(process.env.MONGODB_URI)

@@ -1,9 +1,11 @@
 const OpenAI = require('openai');
 
-// Initialize OpenAI with API key from environment
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY
-});
+// Lazy-init OpenAI only when a request arrives (avoids crash on startup if key missing)
+const getOpenAI = () => {
+    if (!process.env.OPENAI_API_KEY) return null;
+    return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+};
+
 
 // Generate AI-powered resume summary
 const generateSummary = async (req, res) => {
@@ -58,7 +60,11 @@ Make sure the content is:
         let parsedResponse;
         
         try {
+            const openai = getOpenAI();
+            if (!openai) throw new Error('OPENAI_NOT_CONFIGURED');
+
             const completion = await openai.chat.completions.create({
+
                 model: "gpt-3.5-turbo",
                 messages: [
                     {
