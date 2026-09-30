@@ -1,82 +1,120 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Download, Printer, Loader2, Sparkles, Loader, FileText, Copy, CheckCircle, ExternalLink } from 'lucide-react';
+import { Download, Printer, Loader2, Sparkles, Loader, FileText, Copy, CheckCircle } from 'lucide-react';
 import Toast from '../components/Toast';
 import { authFetch } from '../utils/api';
 
-// ── Templates: accent color only, layout stays LaTeX-identical ───────────────
 const TEMPLATES = [
-  { id: 'classic', name: 'Classic', accent: '#000000' },
-  { id: 'navy',    name: 'Navy',    accent: '#1a2e4a' },
-  { id: 'maroon',  name: 'Maroon',  accent: '#6b1f2a' },
-  { id: 'forest',  name: 'Forest',  accent: '#1a3d2b' },
+  { id: 'classic', name: 'Classic', accent: '#111111' },
+  { id: 'navy', name: 'Navy', accent: '#183153' },
+  { id: 'maroon', name: 'Maroon', accent: '#6b1f2a' },
+  { id: 'forest', name: 'Forest', accent: '#1f4d3a' },
 ];
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-const fmtDate = (d) => {
-  if (!d) return '';
-  try { return new Date(d + '-01').toLocaleDateString('en-US', { month: 'short', year: 'numeric' }); }
-  catch { return d; }
+const toArray = (value) => {
+  if (Array.isArray(value)) return value;
+  return value && typeof value === 'object' ? Object.values(value) : [];
+};
+
+const cleanLines = (value = '') => String(value)
+  .split(/\r?\n/)
+  .map(line => line.replace(/^\s*[-–—•*]+\s*/, '').trim())
+  .filter(Boolean);
+
+const safeExternalUrl = (value) => {
+  try {
+    const url = new URL(value);
+    return ['http:', 'https:'].includes(url.protocol) ? url.href : '';
+  } catch {
+    return '';
+  }
+};
+
+const fmtDate = (date) => {
+  if (!date) return '';
+  const match = String(date).match(/^(\d{4})-(\d{2})$/);
+  if (!match) return date;
+  return new Date(Number(match[1]), Number(match[2]) - 1)
+    .toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 };
 
 export default function Preview() {
   const [searchParams] = useSearchParams();
   const resumeId = searchParams.get('id') || localStorage.getItem('lastResumeId');
-
-  const [resume, setResume]   = useState(null);
+  const [resume, setResume] = useState(null);
   const [loading, setLoading] = useState(Boolean(resumeId));
   const [template, setTemplate] = useState(TEMPLATES[0]);
-  const [toast, setToast]     = useState(null);
-
-  // Cover letter
-  const [clRole, setClRole]       = useState('');
+  const [toast, setToast] = useState(null);
+  const [clRole, setClRole] = useState('');
   const [clCompany, setClCompany] = useState('');
   const [clLoading, setClLoading] = useState(false);
   const [coverLetter, setCoverLetter] = useState('');
-  const [clCopied, setClCopied]   = useState(false);
+  const [clCopied, setClCopied] = useState(false);
 
-  const showToast = (m, t = 'info') => setToast({ message: m, type: t });
+  const showToast = (message, type = 'info') => setToast({ message, type });
 
   useEffect(() => {
     if (!resumeId) return;
     authFetch(`/api/resume/${resumeId}`)
-      .then(r => r.json())
-      .then(d => { if (d.success) setResume(d.data); })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) setResume(data.data);
+        else showToast(data.message || 'Failed to load resume', 'error');
+      })
       .catch(() => showToast('Failed to load resume', 'error'))
       .finally(() => setLoading(false));
   }, [resumeId]);
 
   const generateCoverLetter = async () => {
     if (!resume) return;
-    if (!clRole.trim()) { showToast('Enter target role first', 'warning'); return; }
+    if (!clRole.trim()) {
+      showToast('Enter target role first', 'warning');
+      return;
+    }
+
     setClLoading(true);
     try {
-      const res = await authFetch('/api/resume/generateCoverLetter', {
+      const response = await authFetch('/api/resume/generateCoverLetter', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          role: clRole, companyName: clCompany,
+          role: clRole,
+          companyName: clCompany,
           resumeData: {
-            fullName: resume.name, email: resume.email, phone: resume.phone,
-            careerObjective: resume.objective, experience: resume.experience, skills: resume.skills,
+            fullName: resume.name,
+            email: resume.email,
+            phone: resume.phone,
+            careerObjective: resume.objective,
+            experience: resume.experience,
+            skills: resume.skills,
           },
         }),
       });
-      const data = await res.json();
-      if (data.success) { setCoverLetter(data.data.coverLetter); showToast('Cover letter generated!', 'success'); }
-      else showToast(data.message || 'Generation failed', 'error');
-    } catch { showToast('Network error', 'error'); }
-    finally { setClLoading(false); }
+      const data = await response.json();
+      if (data.success) {
+        setCoverLetter(data.data.coverLetter);
+        showToast('Cover letter generated!', 'success');
+      } else {
+        showToast(data.message || 'Generation failed', 'error');
+      }
+    } catch {
+      showToast('Network error', 'error');
+    } finally {
+      setClLoading(false);
+    }
   };
 
-  const copyCL = () => navigator.clipboard.writeText(coverLetter).then(() => { setClCopied(true); setTimeout(() => setClCopied(false), 2000); });
+  const copyCoverLetter = () => navigator.clipboard.writeText(coverLetter).then(() => {
+    setClCopied(true);
+    setTimeout(() => setClCopied(false), 2000);
+  });
 
-  // ── Empty/Loading states ────────────────────────────────────────────────────
   if (loading) return (
     <div className="min-h-screen bg-gray-950 flex items-center justify-center">
       <Loader2 size={40} className="text-violet-400 animate-spin" />
     </div>
   );
+
   if (!resume) return (
     <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center gap-4">
       <FileText size={60} className="text-gray-600" />
@@ -86,34 +124,39 @@ export default function Preview() {
     </div>
   );
 
-  const ac = template.accent;
+  const accent = template.accent;
+  const education = toArray(resume.education).filter(item => item.degree || item.college);
+  const experience = toArray(resume.experience).filter(item => item.role || item.company);
+  const projects = toArray(resume.projects).filter(item => item.title);
+  const certifications = toArray(resume.certifications).filter(item => item.name);
+  const achievements = toArray(resume.achievements).filter(item => item.title || item.description);
+  const activities = toArray(resume.activities).filter(item => item.description);
+  const skills = Array.isArray(resume.skills) ? resume.skills.filter(Boolean) : [];
 
-  // ── Arrays from DB doc ──────────────────────────────────────────────────────
-  const expArr  = Array.isArray(resume.experience)     ? resume.experience     : resume.experience     ? Object.values(resume.experience)     : [];
-  const eduArr  = Array.isArray(resume.education)      ? resume.education      : resume.education      ? Object.values(resume.education)      : [];
-  const projArr = Array.isArray(resume.projects)       ? resume.projects.filter(p => p.title)  : resume.projects  ? Object.values(resume.projects).filter(p => p.title)  : [];
-  const certArr = Array.isArray(resume.certifications) ? resume.certifications.filter(c => c.name) : resume.certifications ? Object.values(resume.certifications).filter(c => c.name) : [];
-  const skills  = Array.isArray(resume.skills)         ? resume.skills         : [];
+  const contactItems = [
+    resume.email ? <a key="email" href={`mailto:${resume.email}`}>{resume.email}</a> : null,
+    resume.phone ? <span key="phone">{resume.phone}</span> : null,
+    resume.address ? <span key="address">{resume.address}</span> : null,
+    safeExternalUrl(resume.socialLinks?.linkedin) ? <a key="linkedin" href={safeExternalUrl(resume.socialLinks.linkedin)} target="_blank" rel="noreferrer">LinkedIn</a> : null,
+    safeExternalUrl(resume.socialLinks?.github) ? <a key="github" href={safeExternalUrl(resume.socialLinks.github)} target="_blank" rel="noreferrer">GitHub</a> : null,
+    safeExternalUrl(resume.socialLinks?.portfolio) ? <a key="portfolio" href={safeExternalUrl(resume.socialLinks.portfolio)} target="_blank" rel="noreferrer">Portfolio</a> : null,
+  ].filter(Boolean);
 
   return (
     <div className="min-h-screen bg-gray-900 py-10 print:bg-white print:py-0">
       {toast && <Toast {...toast} onClose={() => setToast(null)} />}
 
-      {/* ── Toolbar ────────────────────────────────────────────────────────── */}
-      <div className="print:hidden max-w-[900px] mx-auto px-4 mb-6 flex flex-wrap items-center gap-3">
+      <div className="print:hidden max-w-[794px] mx-auto px-4 mb-6 flex flex-wrap items-center gap-3">
         <h1 className="text-xl font-bold text-white mr-auto">Resume Preview</h1>
-
-        {/* Template palette */}
         <div className="flex items-center gap-1.5 bg-gray-800/70 border border-white/10 rounded-xl p-1.5">
-          {TEMPLATES.map(t => (
-            <button key={t.id} onClick={() => setTemplate(t)} title={t.name}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${template.id === t.id ? 'bg-white text-gray-900 shadow' : 'text-gray-400 hover:text-white'}`}>
-              <span className="w-3 h-3 rounded-full shrink-0 border border-white/20" style={{ backgroundColor: t.accent }} />
-              {t.name}
+          {TEMPLATES.map(option => (
+            <button key={option.id} onClick={() => setTemplate(option)} title={option.name}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${template.id === option.id ? 'bg-white text-gray-900 shadow' : 'text-gray-400 hover:text-white'}`}>
+              <span className="w-3 h-3 rounded-full shrink-0 border border-white/20" style={{ backgroundColor: option.accent }} />
+              {option.name}
             </button>
           ))}
         </div>
-
         <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-800 border border-white/10 text-white text-sm hover:bg-gray-700 transition">
           <Printer size={15} /> Print
         </button>
@@ -122,144 +165,129 @@ export default function Preview() {
         </button>
       </div>
 
-      {/* ══════════════════════════════════════════════════════════════════════
-          RESUME DOCUMENT — LaTeX-faithful layout
-          ══════════════════════════════════════════════════════════════════════ */}
-      <div id="resume-doc" className="max-w-[900px] mx-auto bg-white shadow-2xl print:shadow-none print:max-w-none"
-        style={{ fontFamily: '"Times New Roman", Times, Georgia, serif', color: '#111', fontSize: '11pt', lineHeight: '1.35', padding: '0.6in 0.7in 0.6in 0.7in', minHeight: '11in' }}>
-
-        {/* ── NAME ──────────────────────────────────────────────────────────── */}
-        <div style={{ textAlign: 'center', marginBottom: '4px' }}>
-          <h1 style={{ fontFamily: '"Times New Roman", Times, serif', fontSize: '22pt', fontWeight: 'bold', letterSpacing: '0.12em', textTransform: 'uppercase', margin: 0, color: ac }}>
+      <main id="resume-doc" className="mx-auto bg-white shadow-2xl print:shadow-none"
+        style={{
+          width: 'min(100%, 794px)',
+          minHeight: '1123px',
+          padding: '11mm 13mm 12mm',
+          fontFamily: 'Georgia, "Times New Roman", Times, serif',
+          color: '#111',
+          fontSize: '10pt',
+          lineHeight: 1.26,
+        }}>
+        <header style={{ textAlign: 'center', paddingBottom: '3px' }}>
+          <h1 style={{ margin: 0, fontSize: '20pt', lineHeight: 1.1, fontWeight: 700, color: '#111' }}>
             {resume.name}
           </h1>
-        </div>
+          <div className="resume-contact" style={{ marginTop: '5px', fontSize: '8.8pt', lineHeight: 1.35 }}>
+            {contactItems.map((item, index) => (
+              <span key={index}>
+                {index > 0 && <span aria-hidden="true" style={{ margin: '0 5px', color: '#555' }}>|</span>}
+                {item}
+              </span>
+            ))}
+          </div>
+        </header>
 
-        {/* ── CONTACT BAR ────────────────────────────────────────────────────── */}
-        <div style={{ textAlign: 'center', fontSize: '9.5pt', color: '#333', marginBottom: '10px' }}>
-          {[
-            resume.phone,
-            resume.email,
-            resume.address,
-            resume.socialLinks?.linkedin ? <a key="li" href={resume.socialLinks.linkedin} style={{ color: ac, textDecoration: 'none' }} target="_blank" rel="noreferrer">LinkedIn</a> : null,
-            resume.socialLinks?.github   ? <a key="gh" href={resume.socialLinks.github}   style={{ color: ac, textDecoration: 'none' }} target="_blank" rel="noreferrer">GitHub</a>   : null,
-            resume.socialLinks?.portfolio ? <a key="pf" href={resume.socialLinks.portfolio} style={{ color: ac, textDecoration: 'none' }} target="_blank" rel="noreferrer">Portfolio</a> : null,
-          ].filter(Boolean).reduce((acc, el, i) => i === 0 ? [el] : [...acc, <span key={`sep${i}`} style={{ margin: '0 6px', color: '#999' }}>|</span>, el], [])}
-        </div>
-
-        {/* ─────────────────────────────────── SECTIONS ─────────────────────── */}
-
-        {/* PROFESSIONAL SUMMARY */}
         {resume.objective && (
-          <Sec title="Professional Summary" ac={ac}>
-            <p style={{ margin: '4px 0 0', fontSize: '10.5pt', textAlign: 'justify' }}>{resume.objective}</p>
-          </Sec>
+          <ResumeSection title="Professional Summary" accent={accent}>
+            <p style={{ margin: 0, textAlign: 'justify' }}>{resume.objective}</p>
+          </ResumeSection>
         )}
 
-        {/* EDUCATION */}
-        {eduArr.length > 0 && (
-          <Sec title="Education" ac={ac}>
-            {eduArr.map((e, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: i > 0 ? '6px' : '4px' }}>
-                <div>
-                  <span style={{ fontWeight: 'bold', fontSize: '10.5pt' }}>{e.college || e.institution}</span>
-                  {e.degree && <div style={{ fontStyle: 'italic', fontSize: '10pt', color: '#222' }}>{e.degree}</div>}
-                </div>
-                <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: '12px', fontSize: '10pt', fontStyle: 'italic', color: '#444' }}>
-                  {e.year && <div>{e.year}</div>}
-                </div>
-              </div>
+        {education.length > 0 && (
+          <ResumeSection title="Education" accent={accent}>
+            {education.map((item, index) => (
+              <Entry key={index} spaced={index > 0}>
+                <EntryRow left={<strong>{item.degree}</strong>} right={item.year} />
+                <EntryRow left={item.college} right={item.score} secondary />
+              </Entry>
             ))}
-          </Sec>
+          </ResumeSection>
         )}
 
-        {/* TECHNICAL SKILLS */}
-        {skills.length > 0 && (
-          <Sec title="Technical Skills" ac={ac}>
-            <p style={{ margin: '4px 0 0', fontSize: '10.5pt' }}>
-              {skills.join(' · ')}
-            </p>
-          </Sec>
-        )}
-
-        {/* PROFESSIONAL EXPERIENCE */}
-        {expArr.length > 0 && (
-          <Sec title="Professional Experience" ac={ac}>
-            {expArr.map((e, i) => (
-              <div key={i} style={{ marginTop: i > 0 ? '8px' : '4px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                  <div>
-                    <span style={{ fontWeight: 'bold', fontSize: '10.5pt' }}>{e.role}</span>
-                    {e.company && <span style={{ fontSize: '10.5pt' }}> — <span style={{ fontStyle: 'italic' }}>{e.company}</span></span>}
-                  </div>
-                  {e.duration && <span style={{ fontSize: '10pt', fontStyle: 'italic', color: '#555', flexShrink: 0, marginLeft: '12px' }}>{e.duration}</span>}
-                </div>
-                {e.description && (
-                  <div style={{ marginTop: '3px' }}>
-                    {e.description.split('\n').map((line, li) => (
-                      <div key={li} style={{ display: 'flex', gap: '6px', fontSize: '10.5pt', marginTop: '2px' }}>
-                        <span style={{ flexShrink: 0, marginTop: '1px' }}>—</span>
-                        <span>{line}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+        {experience.length > 0 && (
+          <ResumeSection title="Experience" accent={accent}>
+            {experience.map((item, index) => (
+              <Entry key={index} spaced={index > 0}>
+                <EntryRow
+                  left={<><strong>{item.role}</strong>{item.company && <> | {item.company}</>}</>}
+                  right={item.duration}
+                />
+                {item.location && <div style={{ fontStyle: 'italic', fontSize: '9.2pt', marginTop: '1px' }}>{item.location}</div>}
+                <BulletList text={item.description} />
+              </Entry>
             ))}
-          </Sec>
+          </ResumeSection>
         )}
 
-        {/* PROJECTS */}
-        {projArr.length > 0 && (
-          <Sec title="Projects" ac={ac}>
-            {projArr.map((p, i) => (
-              <div key={i} style={{ marginTop: i > 0 ? '8px' : '4px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: '4px' }}>
-                  <div style={{ fontSize: '10.5pt' }}>
-                    <span style={{ fontWeight: 'bold' }}>{p.title}</span>
-                    {p.techStack && <span style={{ color: '#444' }}> | <span style={{ fontStyle: 'italic' }}>{p.techStack}</span></span>}
-                    {p.githubLink && (
-                      <a href={p.githubLink} target="_blank" rel="noreferrer"
-                        style={{ color: ac, fontSize: '9.5pt', textDecoration: 'none', marginLeft: '6px' }}>
-                        <ExternalLink size={10} style={{ display: 'inline', verticalAlign: 'middle' }} /> Code Link
-                      </a>
+        {projects.length > 0 && (
+          <ResumeSection title="Projects" accent={accent}>
+            {projects.map((item, index) => {
+              const projectUrl = safeExternalUrl(item.githubLink);
+              return (
+                <Entry key={index} spaced={index > 0}>
+                  <EntryRow
+                    left={(
+                      <>
+                        <strong>{item.title}</strong>
+                        {projectUrl && <> | <a href={projectUrl} target="_blank" rel="noreferrer" style={{ color: accent }}>Project Link</a></>}
+                      </>
                     )}
-                  </div>
-                </div>
-                {p.description && (
-                  <div style={{ marginTop: '3px' }}>
-                    {p.description.split('\n').map((line, li) => (
-                      <div key={li} style={{ display: 'flex', gap: '6px', fontSize: '10.5pt', marginTop: '2px' }}>
-                        <span style={{ flexShrink: 0, marginTop: '1px' }}>—</span>
-                        <span>{line}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-          </Sec>
+                    right={item.duration}
+                  />
+                  {item.techStack && <div style={{ fontStyle: 'italic', fontSize: '9.2pt', marginTop: '1px' }}>Technologies: {item.techStack}</div>}
+                  <BulletList text={item.description} />
+                </Entry>
+              );
+            })}
+          </ResumeSection>
         )}
 
-        {/* CERTIFICATIONS */}
-        {certArr.length > 0 && (
-          <Sec title="Certifications" ac={ac}>
-            {certArr.map((c, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', marginTop: i > 0 ? '4px' : '4px', fontSize: '10.5pt' }}>
-                <div>
-                  <span style={{ fontWeight: 'bold' }}>{c.name}</span>
-                  {c.issuer && <span style={{ color: '#444' }}> — {c.issuer}</span>}
-                </div>
-                {c.date && <span style={{ fontStyle: 'italic', color: '#555', flexShrink: 0, marginLeft: '12px' }}>{fmtDate(c.date)}</span>}
-              </div>
-            ))}
-          </Sec>
+        {skills.length > 0 && (
+          <ResumeSection title="Technical Skills" accent={accent}>
+            <p style={{ margin: 0 }}>{skills.join('  •  ')}</p>
+          </ResumeSection>
         )}
-      </div>
-      {/* ── end resume doc ───────────────────────────────────────────────────── */}
 
-      {/* ── Cover Letter Generator ─────────────────────────────────────────── */}
-      <div className="print:hidden max-w-[900px] mx-auto px-4 mt-10">
+        {achievements.length > 0 && (
+          <ResumeSection title="Achievements" accent={accent}>
+            <ul className="resume-bullets" style={{ margin: 0, paddingLeft: '16px' }}>
+              {achievements.map((item, index) => (
+                <li key={index} style={{ paddingLeft: '1px', marginTop: index ? '2px' : 0 }}>
+                  <EntryRow
+                    left={<><strong>{item.title}</strong>{item.title && item.description ? ': ' : ''}{item.description}</>}
+                    right={item.date}
+                  />
+                </li>
+              ))}
+            </ul>
+          </ResumeSection>
+        )}
+
+        {certifications.length > 0 && (
+          <ResumeSection title="Certifications" accent={accent}>
+            {certifications.map((item, index) => (
+              <Entry key={index} spaced={index > 0}>
+                <EntryRow
+                  left={<><strong>{item.name}</strong>{item.issuer && <> | {item.issuer}</>}</>}
+                  right={fmtDate(item.date)}
+                />
+              </Entry>
+            ))}
+          </ResumeSection>
+        )}
+
+        {activities.length > 0 && (
+          <ResumeSection title="Extracurricular Activities" accent={accent}>
+            <ul className="resume-bullets" style={{ margin: 0, paddingLeft: '16px' }}>
+              {activities.map((item, index) => <li key={index} style={{ paddingLeft: '1px', marginTop: index ? '2px' : 0 }}>{item.description}</li>)}
+            </ul>
+          </ResumeSection>
+        )}
+      </main>
+
+      <div className="print:hidden max-w-[794px] mx-auto px-4 mt-10">
         <div className="rounded-2xl bg-gray-800/40 border border-white/5 p-6">
           <h2 className="text-xl font-bold text-white mb-5 flex items-center gap-2">
             <Sparkles size={20} className="text-violet-400" /> AI Cover Letter Generator
@@ -267,12 +295,12 @@ export default function Preview() {
           <div className="grid md:grid-cols-2 gap-4 mb-4">
             <div>
               <label className="text-sm text-gray-400 mb-1.5 block">Target Role *</label>
-              <input value={clRole} onChange={e => setClRole(e.target.value)} placeholder="e.g. Software Engineer"
+              <input value={clRole} onChange={event => setClRole(event.target.value)} placeholder="e.g. Software Engineer"
                 className="w-full px-3.5 py-2.5 rounded-xl bg-gray-900/60 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-violet-500/60 text-sm" />
             </div>
             <div>
               <label className="text-sm text-gray-400 mb-1.5 block">Company Name</label>
-              <input value={clCompany} onChange={e => setClCompany(e.target.value)} placeholder="e.g. Google"
+              <input value={clCompany} onChange={event => setClCompany(event.target.value)} placeholder="e.g. Google"
                 className="w-full px-3.5 py-2.5 rounded-xl bg-gray-900/60 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-violet-500/60 text-sm" />
             </div>
           </div>
@@ -285,7 +313,7 @@ export default function Preview() {
             <div className="mt-5 p-5 rounded-xl bg-gray-900/50 border border-white/10">
               <div className="flex justify-between items-center mb-3">
                 <p className="text-sm font-medium text-gray-300">Generated Cover Letter</p>
-                <button onClick={copyCL} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 transition">
+                <button onClick={copyCoverLetter} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 transition">
                   {clCopied ? <CheckCircle size={13} className="text-emerald-400" /> : <Copy size={13} />}
                   {clCopied ? 'Copied!' : 'Copy'}
                 </button>
@@ -299,22 +327,46 @@ export default function Preview() {
   );
 }
 
-// ── Section component: SMALL CAPS title + full-width rule ─────────────────────
-function Sec({ title, ac, children }) {
+function ResumeSection({ title, accent, children }) {
   return (
-    <div style={{ marginTop: '10px' }}>
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: '8px',
-        borderBottom: `1.5px solid ${ac}`, paddingBottom: '2px', marginBottom: '2px',
+    <section className="resume-section" style={{ marginTop: '7px' }}>
+      <h2 style={{
+        margin: '0 0 3px',
+        paddingBottom: '1px',
+        borderBottom: `1.2px solid ${accent}`,
+        color: accent,
+        fontSize: '10.2pt',
+        lineHeight: 1.2,
+        fontWeight: 700,
+        letterSpacing: '0.035em',
+        textTransform: 'uppercase',
       }}>
-        <h2 style={{
-          fontSize: '10.5pt', fontWeight: 'bold', fontVariant: 'small-caps',
-          letterSpacing: '0.08em', color: ac, margin: 0, whiteSpace: 'nowrap',
-        }}>
-          {title}
-        </h2>
-      </div>
+        {title}
+      </h2>
       {children}
+    </section>
+  );
+}
+
+function Entry({ spaced, children }) {
+  return <div className="resume-entry" style={{ marginTop: spaced ? '5px' : 0 }}>{children}</div>;
+}
+
+function EntryRow({ left, right, secondary = false }) {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'baseline', gap: '12px', fontSize: secondary ? '9.4pt' : '10pt' }}>
+      <div style={{ minWidth: 0 }}>{left}</div>
+      {right && <div style={{ flexShrink: 0, textAlign: 'right', whiteSpace: 'nowrap', fontStyle: secondary ? 'normal' : 'italic', fontSize: '9.2pt' }}>{right}</div>}
     </div>
+  );
+}
+
+function BulletList({ text }) {
+  const lines = cleanLines(text);
+  if (!lines.length) return null;
+  return (
+    <ul className="resume-bullets" style={{ margin: '2px 0 0', paddingLeft: '16px' }}>
+      {lines.map((line, index) => <li key={index} style={{ paddingLeft: '1px', marginTop: index ? '1px' : 0 }}>{line}</li>)}
+    </ul>
   );
 }

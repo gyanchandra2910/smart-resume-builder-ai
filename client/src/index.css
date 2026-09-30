@@ -36,8 +36,28 @@
   }
 }
 
+#resume-doc a {
+  color: inherit;
+  text-decoration: none;
+}
+
+#resume-doc a:hover {
+  text-decoration: underline;
+}
+
+.resume-section,
+.resume-entry {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
 /* Print styles for resume */
 @media print {
+  @page {
+    size: A4;
+    margin: 0;
+  }
+
   .print\:hidden {
     display: none !important;
   }
@@ -61,7 +81,12 @@
   }
 
   #resume-doc {
-    max-width: 100% !important;
-    width: 100% !important;
+    width: 210mm !important;
+    min-height: 297mm !important;
+    margin: 0 !important;
+  }
+
+  #resume-doc a {
+    text-decoration: none !important;
   }
 }

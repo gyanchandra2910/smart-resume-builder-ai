@@ -18,14 +18,16 @@ const createResume = async (req, res) => {
             education,
             experience,
             certifications,
-            projects
+            projects,
+            achievements,
+            activities
         } = req.body;
 
         if (!fullName?.trim() || !email?.trim() || !phone?.trim() ||
-            !roleAppliedFor?.trim() || !careerObjective?.trim()) {
+            !roleAppliedFor?.trim()) {
             return res.status(400).json({
                 success: false,
-                message: 'Full name, email, phone, role and career objective are required'
+                message: 'Full name, email, phone and role are required'
             });
         }
 
@@ -44,7 +46,8 @@ const createResume = async (req, res) => {
                     educationData.push({
                         degree: education[key].degree,
                         college: education[key].college,
-                        year: parseInt(education[key].year)
+                        year: String(education[key].year).trim(),
+                        score: education[key].score || ''
                     });
                 }
             });
@@ -59,6 +62,7 @@ const createResume = async (req, res) => {
                         company: experience[key].company,
                         role: experience[key].role,
                         duration: experience[key].duration,
+                        location: experience[key].location || '',
                         description: experience[key].description
                     });
                 }
@@ -83,16 +87,33 @@ const createResume = async (req, res) => {
         const projectsData = [];
         if (projects) {
             Object.keys(projects).forEach(key => {
-                if (projects[key].title || projects[key].techStack || projects[key].description || projects[key].githubLink) {
+                if (projects[key].title || projects[key].techStack || projects[key].description || projects[key].githubLink || projects[key].duration) {
                     projectsData.push({
                         title: projects[key].title || '',
                         techStack: projects[key].techStack || '',
                         description: projects[key].description || '',
-                        githubLink: projects[key].githubLink || ''
+                        githubLink: projects[key].githubLink || '',
+                        duration: projects[key].duration || ''
                     });
                 }
             });
         }
+
+        const achievementsData = achievements
+            ? Object.values(achievements)
+                .filter(item => item?.title || item?.description)
+                .map(item => ({
+                    title: item.title || '',
+                    description: item.description || '',
+                    date: item.date || ''
+                }))
+            : [];
+
+        const activitiesData = activities
+            ? Object.values(activities)
+                .filter(item => item?.description)
+                .map(item => ({ description: item.description }))
+            : [];
 
         // Create resume object
         const resumeData = {
@@ -108,11 +129,13 @@ const createResume = async (req, res) => {
             },
             roleAppliedFor,
             skills: skills || [],
-            objective: careerObjective,
+            objective: careerObjective || '',
             education: educationData,
             experience: experienceData,
             certifications: certificationsData,
-            projects: projectsData
+            projects: projectsData,
+            achievements: achievementsData,
+            activities: activitiesData
         };
 
         // Save to database
@@ -509,23 +532,34 @@ const sanitizeResumeForHtml = (resume) => ({
         role: escapeHtml(exp.role),
         company: escapeHtml(exp.company),
         duration: escapeHtml(exp.duration),
+        location: escapeHtml(exp.location),
         description: escapeHtml(exp.description)
     })),
     education: (resume.education || []).map(edu => ({
         degree: escapeHtml(edu.degree),
         college: escapeHtml(edu.college),
-        year: escapeHtml(edu.year)
+        year: escapeHtml(edu.year),
+        score: escapeHtml(edu.score)
     })),
     projects: (resume.projects || []).map(project => ({
         title: escapeHtml(project.title),
         techStack: escapeHtml(project.techStack),
         description: escapeHtml(project.description),
-        githubLink: safeExternalUrl(project.githubLink)
+        githubLink: safeExternalUrl(project.githubLink),
+        duration: escapeHtml(project.duration)
     })),
     certifications: (resume.certifications || []).map(certification => ({
         name: escapeHtml(certification.name),
         issuer: escapeHtml(certification.issuer),
         date: escapeHtml(certification.date)
+    })),
+    achievements: (resume.achievements || []).map(achievement => ({
+        title: escapeHtml(achievement.title),
+        description: escapeHtml(achievement.description),
+        date: escapeHtml(achievement.date)
+    })),
+    activities: (resume.activities || []).map(activity => ({
+        description: escapeHtml(activity.description)
     }))
 });
 
@@ -564,96 +598,128 @@ const generatePublicResumeHTML = (resume) => {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         body {
-            background-color: #f8f9fa;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #eceff3;
+            color: #111;
+            font-family: Georgia, 'Times New Roman', serif;
         }
         
         .resume-container {
             max-width: 8.5in;
             margin: 0 auto;
-            min-height: 11in;
             background: white;
-            font-family: 'Times New Roman', serif;
+            font-family: Georgia, 'Times New Roman', serif;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            border-radius: 8px;
+        }
+
+        .resume-document {
+            min-height: 11in;
         }
         
         .public-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 2rem;
-            border-radius: 8px 8px 0 0;
+            color: #111;
+            padding: 0.42in 0.5in 0.08in;
             text-align: center;
         }
         
         .public-header h1 {
             margin: 0;
-            font-size: 2.5rem;
+            font-size: 1.75rem;
             font-weight: bold;
+            line-height: 1.1;
         }
         
         .public-header .subtitle {
-            font-size: 1.2rem;
-            margin-top: 0.5rem;
-            opacity: 0.9;
+            font-size: 0.72rem;
+            margin-top: 0.35rem;
         }
         
         .contact-info {
-            margin-top: 1rem;
+            margin-top: 0.35rem;
+            font-size: 0.7rem;
         }
         
         .contact-info span {
-            margin: 0 1rem;
-            font-size: 0.9rem;
+            margin: 0 0.2rem;
+        }
+
+        .contact-info span + span::before {
+            content: '|';
+            color: #666;
+            margin-right: 0.4rem;
+        }
+
+        .contact-info a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .resume-body {
+            padding: 0 0.5in 0.5in;
+            font-size: 0.72rem;
+            line-height: 1.28;
         }
         
         .section-title {
-            color: #2c3e50;
-            border-bottom: 2px solid #667eea;
-            padding-bottom: 0.5rem;
-            margin-bottom: 1.5rem;
-            font-weight: 600;
+            color: #111;
+            border-bottom: 1.2px solid #111;
+            padding-bottom: 0.08rem;
+            margin: 0.48rem 0 0.18rem;
+            font-size: 0.76rem;
+            font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 0.035em;
         }
         
         .skills-container .badge {
-            background: #667eea;
-            color: white;
-            margin: 0.2rem;
-            padding: 0.5rem 1rem;
-            font-size: 0.9rem;
+            background: none;
+            color: #111;
+            margin: 0;
+            padding: 0;
+            font-size: inherit;
+        }
+
+        .skills-container .badge + .badge::before {
+            content: ' • ';
+            margin: 0 0.3rem;
         }
         
         .experience-item, .education-item, .project-item, .certification-item {
-            margin-bottom: 2rem;
-            padding-left: 1rem;
-            border-left: 3px solid #667eea;
+            margin-bottom: 0.32rem;
+            padding: 0;
+            break-inside: avoid;
         }
         
         .item-header {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.05rem;
         }
         
         .item-title {
             font-weight: bold;
-            color: #2c3e50;
+            color: #111;
             margin: 0;
+            font-size: 0.73rem;
         }
         
         .item-subtitle {
-            color: #667eea;
-            font-weight: 500;
+            color: #111;
+            font-weight: 400;
             margin: 0;
+            font-style: italic;
         }
         
         .item-duration {
             color: #6c757d;
             font-style: italic;
-            font-size: 0.9rem;
+            font-size: 0.68rem;
+            white-space: nowrap;
+        }
+
+        .item-description {
+            margin: 0.08rem 0 0;
+            white-space: pre-line;
         }
         
         .public-actions {
@@ -671,6 +737,11 @@ const generatePublicResumeHTML = (resume) => {
         }
         
         @media print {
+            @page {
+                size: A4;
+                margin: 0;
+            }
+
             .public-actions {
                 display: none !important;
             }
@@ -681,7 +752,8 @@ const generatePublicResumeHTML = (resume) => {
             
             .resume-container {
                 box-shadow: none;
-                border-radius: 0;
+                width: 210mm;
+                min-height: 297mm;
             }
         }
         
@@ -692,11 +764,7 @@ const generatePublicResumeHTML = (resume) => {
             }
             
             .public-header h1 {
-                font-size: 2rem;
-            }
-            
-            .item-header {
-                flex-direction: column;
+                font-size: 1.55rem;
             }
         }
     </style>
@@ -704,7 +772,9 @@ const generatePublicResumeHTML = (resume) => {
 <body>
     <div class="container-fluid py-4">
         <div class="resume-container">
-            ${generatePublicResumeContent(safeResume)}
+            <div class="resume-document">
+                ${generatePublicResumeContent(safeResume)}
+            </div>
             
             <div class="public-actions">
                 <button onclick="downloadPDF(event)" class="btn btn-primary me-3">
@@ -727,7 +797,7 @@ const generatePublicResumeHTML = (resume) => {
 
     <script>
         function downloadPDF(event) {
-            const element = document.querySelector('.resume-container');
+            const element = document.querySelector('.resume-document');
             const downloadBtn = event.currentTarget;
             const originalText = downloadBtn.innerHTML;
             
@@ -735,7 +805,7 @@ const generatePublicResumeHTML = (resume) => {
             downloadBtn.disabled = true;
             
             const opt = {
-                margin: [0.5, 0.5, 0.5, 0.5],
+                margin: 0,
                 filename: ${JSON.stringify(pdfFilename)},
                 image: { type: 'jpeg', quality: 0.98 },
                 html2canvas: { 
@@ -745,7 +815,7 @@ const generatePublicResumeHTML = (resume) => {
                 },
                 jsPDF: { 
                     unit: 'in', 
-                    format: 'letter', 
+                    format: 'a4',
                     orientation: 'portrait' 
                 }
             };
@@ -768,67 +838,41 @@ const generatePublicResumeHTML = (resume) => {
 
 // Helper function to generate resume content for public view
 const generatePublicResumeContent = (resume) => {
+    const renderBullets = (value) => {
+        const lines = String(value || '')
+            .split(/\r?\n/)
+            .map(line => line.replace(/^\s*[-–—•*]+\s*/, '').trim())
+            .filter(Boolean);
+
+        return lines.length
+            ? `<ul class="mb-0 ps-3">${lines.map(line => `<li>${line}</li>`).join('')}</ul>`
+            : '';
+    };
+
     return `
-        <!-- Header Section -->
         <div class="public-header">
             <h1>${resume.name}</h1>
-            <div class="subtitle">${resume.roleAppliedFor}</div>
             <div class="contact-info">
-                <span><i class="fas fa-envelope me-1"></i>${resume.email}</span>
-                ${resume.phone ? `<span><i class="fas fa-phone me-1"></i>${resume.phone}</span>` : ''}
-                ${resume.address ? `<span><i class="fas fa-map-marker-alt me-1"></i>${resume.address}</span>` : ''}
+                <span>${resume.email}</span>
+                ${resume.phone ? `<span>${resume.phone}</span>` : ''}
+                ${resume.address ? `<span>${resume.address}</span>` : ''}
+                ${resume.socialLinks.linkedin ? `<span><a href="${resume.socialLinks.linkedin}" target="_blank" rel="noopener noreferrer">LinkedIn</a></span>` : ''}
+                ${resume.socialLinks.github ? `<span><a href="${resume.socialLinks.github}" target="_blank" rel="noopener noreferrer">GitHub</a></span>` : ''}
+                ${resume.socialLinks.portfolio ? `<span><a href="${resume.socialLinks.portfolio}" target="_blank" rel="noopener noreferrer">Portfolio</a></span>` : ''}
             </div>
-            ${(resume.socialLinks.linkedin || resume.socialLinks.github || resume.socialLinks.portfolio) ? `
-            <div class="contact-info mt-2">
-                ${resume.socialLinks.linkedin ? `<span><a href="${resume.socialLinks.linkedin}" target="_blank" rel="noopener noreferrer" class="text-white"><i class="fab fa-linkedin me-1"></i>LinkedIn</a></span>` : ''}
-                ${resume.socialLinks.github ? `<span><a href="${resume.socialLinks.github}" target="_blank" rel="noopener noreferrer" class="text-white"><i class="fab fa-github me-1"></i>GitHub</a></span>` : ''}
-                ${resume.socialLinks.portfolio ? `<span><a href="${resume.socialLinks.portfolio}" target="_blank" rel="noopener noreferrer" class="text-white"><i class="fas fa-globe me-1"></i>Portfolio</a></span>` : ''}
-            </div>
-            ` : ''}
         </div>
         
-        <div class="p-4">
+        <div class="resume-body">
             ${resume.objective ? `
-            <!-- Objective Section -->
-            <div class="mb-4">
-                <h3 class="section-title"><i class="fas fa-bullseye me-2"></i>Professional Objective</h3>
-                <p class="text-muted">${resume.objective}</p>
+            <div>
+                <h3 class="section-title">Professional Summary</h3>
+                <p class="mb-0">${resume.objective}</p>
             </div>
             ` : ''}
-            
-            ${resume.skills && resume.skills.length > 0 ? `
-            <!-- Skills Section -->
-            <div class="mb-4">
-                <h3 class="section-title"><i class="fas fa-code me-2"></i>Technical Skills</h3>
-                <div class="skills-container">
-                    ${resume.skills.map(skill => `<span class="badge">${skill}</span>`).join('')}
-                </div>
-            </div>
-            ` : ''}
-            
-            ${resume.experience && resume.experience.length > 0 ? `
-            <!-- Experience Section -->
-            <div class="mb-4">
-                <h3 class="section-title"><i class="fas fa-briefcase me-2"></i>Professional Experience</h3>
-                ${resume.experience.map(exp => `
-                    <div class="experience-item">
-                        <div class="item-header">
-                            <div>
-                                <h4 class="item-title">${exp.role}</h4>
-                                <p class="item-subtitle">${exp.company}</p>
-                            </div>
-                            <div class="item-duration">${exp.duration}</div>
-                        </div>
-                        <p class="text-muted">${exp.description}</p>
-                    </div>
-                `).join('')}
-            </div>
-            ` : ''}
-            
+
             ${resume.education && resume.education.length > 0 ? `
-            <!-- Education Section -->
-            <div class="mb-4">
-                <h3 class="section-title"><i class="fas fa-graduation-cap me-2"></i>Education</h3>
+            <div>
+                <h3 class="section-title">Education</h3>
                 ${resume.education.map(edu => `
                     <div class="education-item">
                         <div class="item-header">
@@ -836,47 +880,89 @@ const generatePublicResumeContent = (resume) => {
                                 <h4 class="item-title">${edu.degree}</h4>
                                 <p class="item-subtitle">${edu.college}</p>
                             </div>
-                            <div class="item-duration">${edu.year}</div>
+                            <div class="item-duration">${edu.year}${edu.score ? `<br>${edu.score}` : ''}</div>
                         </div>
                     </div>
                 `).join('')}
             </div>
             ` : ''}
-            
+
+            ${resume.experience && resume.experience.length > 0 ? `
+            <div>
+                <h3 class="section-title">Experience</h3>
+                ${resume.experience.map(exp => `
+                    <div class="experience-item">
+                        <div class="item-header">
+                            <div>
+                                <h4 class="item-title">${exp.role}${exp.company ? ` | ${exp.company}` : ''}</h4>
+                                ${exp.location ? `<p class="item-subtitle">${exp.location}</p>` : ''}
+                            </div>
+                            <div class="item-duration">${exp.duration}</div>
+                        </div>
+                        ${renderBullets(exp.description)}
+                    </div>
+                `).join('')}
+            </div>
+            ` : ''}
+
             ${resume.projects && resume.projects.length > 0 ? `
-            <!-- Projects Section -->
-            <div class="mb-4">
-                <h3 class="section-title"><i class="fas fa-project-diagram me-2"></i>Projects</h3>
+            <div>
+                <h3 class="section-title">Projects</h3>
                 ${resume.projects.map(proj => `
                     <div class="project-item">
                         <div class="item-header">
                             <div>
-                                <h4 class="item-title">${proj.title}</h4>
+                                <h4 class="item-title">${proj.title}${proj.githubLink ? ` | <a href="${proj.githubLink}" target="_blank" rel="noopener noreferrer">Project Link</a>` : ''}</h4>
                                 ${proj.techStack ? `<p class="item-subtitle">Technologies: ${proj.techStack}</p>` : ''}
                             </div>
-                            ${proj.githubLink ? `<div><a href="${proj.githubLink}" target="_blank" rel="noopener noreferrer" class="text-decoration-none"><i class="fab fa-github me-1"></i>GitHub</a></div>` : ''}
+                            ${proj.duration ? `<div class="item-duration">${proj.duration}</div>` : ''}
                         </div>
-                        ${proj.description ? `<p class="text-muted">${proj.description}</p>` : ''}
+                        ${renderBullets(proj.description)}
                     </div>
                 `).join('')}
             </div>
             ` : ''}
-            
+
+            ${resume.skills && resume.skills.length > 0 ? `
+            <div>
+                <h3 class="section-title">Technical Skills</h3>
+                <div class="skills-container">
+                    ${resume.skills.map(skill => `<span class="badge">${skill}</span>`).join('')}
+                </div>
+            </div>
+            ` : ''}
+
+            ${resume.achievements && resume.achievements.length > 0 ? `
+            <div>
+                <h3 class="section-title">Achievements</h3>
+                <ul class="mb-0 ps-3">
+                    ${resume.achievements.map(item => `<li><strong>${item.title}</strong>${item.title && item.description ? ': ' : ''}${item.description}${item.date ? ` <span class="item-duration float-end">${item.date}</span>` : ''}</li>`).join('')}
+                </ul>
+            </div>
+            ` : ''}
+
             ${resume.certifications && resume.certifications.length > 0 ? `
-            <!-- Certifications Section -->
-            <div class="mb-4">
-                <h3 class="section-title"><i class="fas fa-certificate me-2"></i>Certifications</h3>
+            <div>
+                <h3 class="section-title">Certifications</h3>
                 ${resume.certifications.map(cert => `
                     <div class="certification-item">
                         <div class="item-header">
                             <div>
-                                <h4 class="item-title">${cert.name}</h4>
-                                ${cert.issuer ? `<p class="item-subtitle">${cert.issuer}</p>` : ''}
+                                <h4 class="item-title">${cert.name}${cert.issuer ? ` | ${cert.issuer}` : ''}</h4>
                             </div>
                             ${cert.date ? `<div class="item-duration">${cert.date}</div>` : ''}
                         </div>
                     </div>
                 `).join('')}
+            </div>
+            ` : ''}
+
+            ${resume.activities && resume.activities.length > 0 ? `
+            <div>
+                <h3 class="section-title">Extracurricular Activities</h3>
+                <ul class="mb-0 ps-3">
+                    ${resume.activities.map(item => `<li>${item.description}</li>`).join('')}
+                </ul>
             </div>
             ` : ''}
         </div>

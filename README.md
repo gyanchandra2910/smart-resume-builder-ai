@@ -7,12 +7,16 @@ A full-stack web application for building professional resumes with AI assistanc
 ## What it does
 
 - Guided multi-section resume builder with dynamic form entries
+- Education scores, experience locations, project durations, achievements, certifications, and extracurricular activities
 - AI-generated professional summaries, bullet points, and career objectives
 - ATS compatibility scoring against a job description
 - Cover letter generation for a specific role and company
 - Tailored interview question generation from your resume
 - JWT-based authentication with user-scoped resume access
-- Print-ready LaTeX-inspired resume layout with four color themes
+- Clean, single-column, ATS-friendly A4 resume without logos or decorative icons
+- Consistent private preview, public sharing, print, and PDF layouts with four accent themes
+
+The professional summary is optional, so students and freshers can use a compact project-focused resume when that fits better.
 
 ---
 
@@ -77,6 +81,8 @@ cd client && npm run dev
 ```
 
 Open `http://localhost:5173` in your browser.
+
+The default **Classic** resume theme is black and white. Navy, Maroon, and Forest are available as optional accent themes from the preview toolbar.
 
 ---
 

@@ -31,7 +31,7 @@ const formatResumeToPlainText = (r) => {
         text += 'PROFESSIONAL EXPERIENCE\n';
         expArray.forEach(e => {
             text += `${e.role} | ${e.company}\n`;
-            if (e.duration) text += `${e.duration}\n`;
+            if (e.duration || e.location) text += `${[e.duration, e.location].filter(Boolean).join(' | ')}\n`;
             if (e.description) text += `${e.description}\n`;
             text += '\n';
         });
@@ -45,6 +45,7 @@ const formatResumeToPlainText = (r) => {
         eduArray.forEach(e => {
             text += `${e.degree} | ${e.college}`;
             if (e.year) text += ` | ${e.year}`;
+            if (e.score) text += ` | ${e.score}`;
             text += '\n';
         });
         text += '\n';
@@ -58,6 +59,7 @@ const formatResumeToPlainText = (r) => {
         projArray.forEach(p => {
             text += `${p.title}\n`;
             if (p.techStack) text += `Technologies: ${p.techStack}\n`;
+            if (p.duration) text += `${p.duration}\n`;
             if (p.description) text += `${p.description}\n`;
             text += '\n';
         });
@@ -73,6 +75,22 @@ const formatResumeToPlainText = (r) => {
             if (c.issuer) text += ` | ${c.issuer}`;
             if (c.date) text += ` | ${c.date}`;
             text += '\n';
+        });
+    }
+
+    const achievements = Array.isArray(r.achievements) ? r.achievements : [];
+    if (achievements.length > 0) {
+        text += '\nACHIEVEMENTS\n';
+        achievements.forEach(item => {
+            text += [item.title, item.description, item.date].filter(Boolean).join(' | ') + '\n';
+        });
+    }
+
+    const activities = Array.isArray(r.activities) ? r.activities : [];
+    if (activities.length > 0) {
+        text += '\nEXTRACURRICULAR ACTIVITIES\n';
+        activities.forEach(item => {
+            if (item.description) text += `${item.description}\n`;
         });
     }
 

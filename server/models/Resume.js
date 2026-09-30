@@ -58,7 +58,6 @@ const resumeSchema = new mongoose.Schema({
     }],
     objective: {
         type: String,
-        required: true,
         trim: true
     },
     
@@ -75,10 +74,13 @@ const resumeSchema = new mongoose.Schema({
             trim: true
         },
         year: {
-            type: Number,
+            type: String,
             required: true,
-            min: 1950,
-            max: 2030
+            trim: true
+        },
+        score: {
+            type: String,
+            trim: true
         }
     }],
     
@@ -97,6 +99,10 @@ const resumeSchema = new mongoose.Schema({
         duration: {
             type: String,
             required: true,
+            trim: true
+        },
+        location: {
+            type: String,
             trim: true
         },
         description: {
@@ -137,6 +143,32 @@ const resumeSchema = new mongoose.Schema({
             trim: true
         },
         githubLink: {
+            type: String,
+            trim: true
+        },
+        duration: {
+            type: String,
+            trim: true
+        }
+    }],
+
+    // Accomplishments and activities
+    achievements: [{
+        title: {
+            type: String,
+            trim: true
+        },
+        description: {
+            type: String,
+            trim: true
+        },
+        date: {
+            type: String,
+            trim: true
+        }
+    }],
+    activities: [{
+        description: {
             type: String,
             trim: true
         }

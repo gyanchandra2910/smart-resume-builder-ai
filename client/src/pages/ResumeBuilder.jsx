@@ -50,10 +50,12 @@ const Section = ({ title, icon, children, defaultOpen = true }) => {
 };
 
 // ── Initial state factories ───────────────────────────────────────────────────
-const emptyEdu = () => ({ degree: '', college: '', year: '' });
-const emptyExp = () => ({ company: '', role: '', duration: '', description: '' });
+const emptyEdu = () => ({ degree: '', college: '', year: '', score: '' });
+const emptyExp = () => ({ company: '', role: '', duration: '', location: '', description: '' });
 const emptyCert = () => ({ name: '', issuer: '', date: '' });
-const emptyProject = () => ({ title: '', techStack: '', githubLink: '', description: '' });
+const emptyProject = () => ({ title: '', techStack: '', githubLink: '', duration: '', description: '' });
+const emptyAchievement = () => ({ title: '', description: '', date: '' });
+const emptyActivity = () => ({ description: '' });
 
 export default function ResumeBuilder() {
   const navigate = useNavigate();
@@ -70,6 +72,8 @@ export default function ResumeBuilder() {
   const [experience, setExperience] = useState([emptyExp()]);
   const [certifications, setCertifications] = useState([emptyCert()]);
   const [projects, setProjects] = useState([emptyProject()]);
+  const [achievements, setAchievements] = useState([emptyAchievement()]);
+  const [activities, setActivities] = useState([emptyActivity()]);
 
   // ── UI state ────────────────────────────────────────────────────────────────
   const [loading, setLoading] = useState(false);
@@ -102,7 +106,6 @@ export default function ResumeBuilder() {
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = 'Invalid email';
     if (!form.phone.trim()) errs.phone = 'Phone is required';
     if (!form.roleAppliedFor.trim()) errs.roleAppliedFor = 'Role is required';
-    if (!form.careerObjective.trim()) errs.careerObjective = 'Career objective is required';
     if (skills.length === 0) errs.skills = 'Add at least one skill';
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -155,6 +158,8 @@ export default function ResumeBuilder() {
       experience: experience.reduce((acc, e, i) => { acc[i] = e; return acc; }, {}),
       certifications: certifications.reduce((acc, e, i) => { acc[i] = e; return acc; }, {}),
       projects: projects.reduce((acc, e, i) => { acc[i] = e; return acc; }, {}),
+      achievements: achievements.reduce((acc, e, i) => { acc[i] = e; return acc; }, {}),
+      activities: activities.reduce((acc, e, i) => { acc[i] = e; return acc; }, {}),
     };
 
     try {
@@ -227,8 +232,8 @@ export default function ResumeBuilder() {
             <Field label="Desired Role / Position" required error={errors.roleAppliedFor}>
               <Input id="roleAppliedFor" placeholder="Senior Frontend Developer" value={form.roleAppliedFor} onChange={e => updateForm('roleAppliedFor', e.target.value)} />
             </Field>
-            <Field label="Career Objective" required error={errors.careerObjective}>
-              <Textarea id="careerObjective" rows={4} placeholder="Briefly describe your professional goals..." value={form.careerObjective} onChange={e => updateForm('careerObjective', e.target.value)} />
+            <Field label="Professional Summary (optional)" error={errors.careerObjective}>
+              <Textarea id="careerObjective" rows={3} placeholder="Keep this concise and role-specific, or leave it blank for a project-focused resume." value={form.careerObjective} onChange={e => updateForm('careerObjective', e.target.value)} />
             </Field>
             {/* AI Enhance Button */}
             <button
@@ -317,15 +322,18 @@ export default function ResumeBuilder() {
                     <X size={16} />
                   </button>
                 )}
-                <div className="grid md:grid-cols-3 gap-4">
+                <div className="grid md:grid-cols-2 gap-4">
                   <Field label="Degree" required>
                     <Input placeholder="B.Sc. Computer Science" value={edu.degree} onChange={e => updateList(setEducation, i, 'degree', e.target.value)} />
                   </Field>
                   <Field label="College / University" required>
                     <Input placeholder="MIT" value={edu.college} onChange={e => updateList(setEducation, i, 'college', e.target.value)} />
                   </Field>
-                  <Field label="Year" required>
-                    <Input type="number" min="1950" max="2030" placeholder="2024" value={edu.year} onChange={e => updateList(setEducation, i, 'year', e.target.value)} />
+                  <Field label="Year / Duration" required>
+                    <Input placeholder="2023 – 2027" value={edu.year} onChange={e => updateList(setEducation, i, 'year', e.target.value)} />
+                  </Field>
+                  <Field label="CGPA / Percentage">
+                    <Input placeholder="CGPA: 8.9 / 10" value={edu.score} onChange={e => updateList(setEducation, i, 'score', e.target.value)} />
                   </Field>
                 </div>
               </div>
@@ -355,6 +363,9 @@ export default function ResumeBuilder() {
                   </Field>
                   <Field label="Duration" required>
                     <Input placeholder="Jan 2022 – Dec 2023" value={exp.duration} onChange={e => updateList(setExperience, i, 'duration', e.target.value)} />
+                  </Field>
+                  <Field label="Location">
+                    <Input placeholder="Chennai, India / Remote" value={exp.location} onChange={e => updateList(setExperience, i, 'location', e.target.value)} />
                   </Field>
                 </div>
                 <Field label="Description" required>
@@ -387,6 +398,9 @@ export default function ResumeBuilder() {
                   </Field>
                   <Field label="GitHub Link">
                     <Input placeholder="https://github.com/..." value={proj.githubLink} onChange={e => updateList(setProjects, i, 'githubLink', e.target.value)} />
+                  </Field>
+                  <Field label="Duration">
+                    <Input placeholder="Feb 2026 – Mar 2026" value={proj.duration} onChange={e => updateList(setProjects, i, 'duration', e.target.value)} />
                   </Field>
                 </div>
                 <Field label="Description">
@@ -426,6 +440,56 @@ export default function ResumeBuilder() {
             <button type="button" onClick={() => setCertifications(arr => [...arr, emptyCert()])}
               className="flex items-center gap-2 text-sm text-violet-400 hover:text-violet-300 transition font-medium">
               <Plus size={15} /> Add Certification
+            </button>
+          </Section>
+
+          {/* ── Achievements ──────────────────────────────────────── */}
+          <Section title="Achievements" icon="★" defaultOpen={false}>
+            {achievements.map((achievement, i) => (
+              <div key={i} className="relative p-5 rounded-xl bg-gray-900/50 border border-white/5">
+                {i > 0 && (
+                  <button type="button" onClick={() => setAchievements(arr => arr.filter((_, j) => j !== i))}
+                    className="absolute top-3 right-3 text-gray-500 hover:text-red-400 transition">
+                    <X size={16} />
+                  </button>
+                )}
+                <div className="grid md:grid-cols-2 gap-4 mb-4">
+                  <Field label="Achievement Title">
+                    <Input placeholder="LeetCode Knight — Top 2.3%" value={achievement.title} onChange={e => updateList(setAchievements, i, 'title', e.target.value)} />
+                  </Field>
+                  <Field label="Date / Year">
+                    <Input placeholder="2025 – 2026" value={achievement.date} onChange={e => updateList(setAchievements, i, 'date', e.target.value)} />
+                  </Field>
+                </div>
+                <Field label="Details">
+                  <Textarea rows={2} placeholder="Add a measurable result, rank, award, or selection detail." value={achievement.description} onChange={e => updateList(setAchievements, i, 'description', e.target.value)} />
+                </Field>
+              </div>
+            ))}
+            <button type="button" onClick={() => setAchievements(arr => [...arr, emptyAchievement()])}
+              className="flex items-center gap-2 text-sm text-violet-400 hover:text-violet-300 transition font-medium">
+              <Plus size={15} /> Add Achievement
+            </button>
+          </Section>
+
+          {/* ── Activities ────────────────────────────────────────── */}
+          <Section title="Extracurricular Activities" icon="◆" defaultOpen={false}>
+            {activities.map((activity, i) => (
+              <div key={i} className="relative p-5 rounded-xl bg-gray-900/50 border border-white/5">
+                {i > 0 && (
+                  <button type="button" onClick={() => setActivities(arr => arr.filter((_, j) => j !== i))}
+                    className="absolute top-3 right-3 text-gray-500 hover:text-red-400 transition">
+                    <X size={16} />
+                  </button>
+                )}
+                <Field label="Activity">
+                  <Textarea rows={2} placeholder="e.g. Active participant in hackathons, coding competitions, and developer communities." value={activity.description} onChange={e => updateList(setActivities, i, 'description', e.target.value)} />
+                </Field>
+              </div>
+            ))}
+            <button type="button" onClick={() => setActivities(arr => [...arr, emptyActivity()])}
+              className="flex items-center gap-2 text-sm text-violet-400 hover:text-violet-300 transition font-medium">
+              <Plus size={15} /> Add Activity
             </button>
           </Section>
 
