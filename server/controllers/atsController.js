@@ -97,7 +97,7 @@ const checkATSScore = async (req, res) => {
             if (!mongoose.Types.ObjectId.isValid(resumeId)) {
                 return res.status(400).json({ success: false, message: 'Invalid Resume ID format' });
             }
-            const doc = await Resume.findById(resumeId);
+            const doc = await Resume.findOne({ _id: resumeId, userId: req.userId });
             if (!doc) {
                 return res.status(404).json({ success: false, message: 'Resume not found with this ID' });
             }
@@ -143,7 +143,7 @@ Analyze how well this resume matches the job description. Return ONLY valid JSON
             try {
                 const openai = getOpenAI();
                 const completion = await openai.chat.completions.create({
-                    model: 'gpt-3.5-turbo',
+                    model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
                     messages: [
                         {
                             role: 'system',

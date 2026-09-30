@@ -4,8 +4,6 @@ const mongoose = require('mongoose');
 // Create new resume
 const createResume = async (req, res) => {
     try {
-        console.log('Received resume data:', JSON.stringify(req.body, null, 2));
-        
         const {
             fullName,
             email,
@@ -22,6 +20,21 @@ const createResume = async (req, res) => {
             certifications,
             projects
         } = req.body;
+
+        if (!fullName?.trim() || !email?.trim() || !phone?.trim() ||
+            !roleAppliedFor?.trim() || !careerObjective?.trim()) {
+            return res.status(400).json({
+                success: false,
+                message: 'Full name, email, phone, role and career objective are required'
+            });
+        }
+
+        if (!Array.isArray(skills) || skills.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'At least one skill is required'
+            });
+        }
 
         // Process education data
         const educationData = [];
@@ -83,6 +96,7 @@ const createResume = async (req, res) => {
 
         // Create resume object
         const resumeData = {
+            userId: req.userId,
             name: fullName,
             email,
             phone,
@@ -130,7 +144,15 @@ const createResume = async (req, res) => {
 const getResume = async (req, res) => {
     try {
         const { id } = req.params;
-        const resume = await Resume.findById(id);
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid resume ID format'
+            });
+        }
+
+        const resume = await Resume.findOne({ _id: id, userId: req.userId });
 
         if (!resume) {
             return res.status(404).json({
@@ -157,7 +179,9 @@ const getResume = async (req, res) => {
 // Get all resumes
 const getAllResumes = async (req, res) => {
     try {
-        const resumes = await Resume.find().select('name email roleAppliedFor createdAt').sort({ createdAt: -1 });
+        const resumes = await Resume.find({ userId: req.userId })
+            .select('name email roleAppliedFor createdAt')
+            .sort({ createdAt: -1 });
 
         res.status(200).json({
             success: true,
@@ -179,6 +203,15 @@ const getAllResumes = async (req, res) => {
 const getPublicResume = async (req, res) => {
     try {
         const { id } = req.params;
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(404).send(renderMessagePage(
+                'Invalid Resume Link',
+                'The resume link you opened is invalid.',
+                'warning'
+            ));
+        }
+
         const resume = await Resume.findById(id);
 
         if (!resume) {
@@ -242,7 +275,7 @@ const deleteResume = async (req, res) => {
             });
         }
         
-        const resume = await Resume.findByIdAndDelete(id);
+        const resume = await Resume.findOneAndDelete({ _id: id, userId: req.userId });
 
         if (!resume) {
             return res.status(404).json({
@@ -322,17 +355,7 @@ const generateCoverLetter = async (req, res) => {
             });
         }
 
-        // 2. Check OpenAI configuration
-        if (!process.env.OPENAI_API_KEY) {
-            console.log('❌ OpenAI API key not configured');
-            return res.status(500).json({
-                success: false,
-                message: 'AI service is not configured. Please contact support.',
-                error: 'OPENAI_NOT_CONFIGURED'
-            });
-        }
-
-        // 3. Format resume data for prompt
+        // 2. Format resume data for prompt
         const formattedData = formatResumeDataForPrompt(fullResumeData, role, companyName);
         console.log('✅ Resume data formatted for prompt:', {
             nameLength: formattedData.name.length,
@@ -346,16 +369,16 @@ const generateCoverLetter = async (req, res) => {
         
         let coverLetter;
         let isTemplate = false;
-        let aiModel = 'gpt-3.5-turbo';
+        let aiModel = process.env.OPENAI_MODEL || 'gpt-4o-mini';
 
         try {
             // 5. Call OpenAI API with error handling
             console.log('🤖 Calling OpenAI API for cover letter generation...');
             
             const { OpenAI } = require('openai');
-            const openai = new OpenAI({
-                apiKey: process.env.OPENAI_API_KEY
-            });
+            if (!process.env.OPENAI_API_KEY) throw new Error('OPENAI_NOT_CONFIGURED');
+
+            const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
             const completion = await openai.chat.completions.create({
                 model: aiModel,
@@ -451,15 +474,91 @@ const generateCoverLetter = async (req, res) => {
     }
 };
 
+const escapeHtml = (value = '') => String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+const safeExternalUrl = (value) => {
+    if (!value) return '';
+
+    try {
+        const url = new URL(String(value));
+        return ['http:', 'https:'].includes(url.protocol) ? escapeHtml(url.href) : '';
+    } catch {
+        return '';
+    }
+};
+
+const sanitizeResumeForHtml = (resume) => ({
+    name: escapeHtml(resume.name),
+    email: escapeHtml(resume.email),
+    phone: escapeHtml(resume.phone),
+    address: escapeHtml(resume.address),
+    roleAppliedFor: escapeHtml(resume.roleAppliedFor),
+    objective: escapeHtml(resume.objective),
+    socialLinks: {
+        linkedin: safeExternalUrl(resume.socialLinks?.linkedin),
+        github: safeExternalUrl(resume.socialLinks?.github),
+        portfolio: safeExternalUrl(resume.socialLinks?.portfolio)
+    },
+    skills: (resume.skills || []).map(escapeHtml),
+    experience: (resume.experience || []).map(exp => ({
+        role: escapeHtml(exp.role),
+        company: escapeHtml(exp.company),
+        duration: escapeHtml(exp.duration),
+        description: escapeHtml(exp.description)
+    })),
+    education: (resume.education || []).map(edu => ({
+        degree: escapeHtml(edu.degree),
+        college: escapeHtml(edu.college),
+        year: escapeHtml(edu.year)
+    })),
+    projects: (resume.projects || []).map(project => ({
+        title: escapeHtml(project.title),
+        techStack: escapeHtml(project.techStack),
+        description: escapeHtml(project.description),
+        githubLink: safeExternalUrl(project.githubLink)
+    })),
+    certifications: (resume.certifications || []).map(certification => ({
+        name: escapeHtml(certification.name),
+        issuer: escapeHtml(certification.issuer),
+        date: escapeHtml(certification.date)
+    }))
+});
+
+const renderMessagePage = (title, message, tone = 'danger') => `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${escapeHtml(title)} - Smart Resume Builder AI</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5 text-center">
+        <h1 class="text-${escapeHtml(tone)}">${escapeHtml(title)}</h1>
+        <p class="text-muted">${escapeHtml(message)}</p>
+        <a href="/" class="btn btn-primary">Back to Home</a>
+    </div>
+</body>
+</html>`;
+
 // Helper function to generate public resume HTML
 const generatePublicResumeHTML = (resume) => {
+    const safeResume = sanitizeResumeForHtml(resume);
+    const pdfFilename = `${String(resume.name || 'resume').replace(/[^a-z0-9]/gi, '_').toLowerCase()}_resume.pdf`;
+
     return `
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${resume.name} - Resume | Smart Resume Builder AI</title>
+    <title>${safeResume.name} - Resume | Smart Resume Builder AI</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -605,10 +704,10 @@ const generatePublicResumeHTML = (resume) => {
 <body>
     <div class="container-fluid py-4">
         <div class="resume-container">
-            ${generatePublicResumeContent(resume)}
+            ${generatePublicResumeContent(safeResume)}
             
             <div class="public-actions">
-                <button onclick="downloadPDF()" class="btn btn-primary me-3">
+                <button onclick="downloadPDF(event)" class="btn btn-primary me-3">
                     <i class="fas fa-download me-2"></i>Download PDF
                 </button>
                 <button onclick="window.print()" class="btn btn-outline-primary me-3">
@@ -627,9 +726,9 @@ const generatePublicResumeHTML = (resume) => {
     </div>
 
     <script>
-        function downloadPDF() {
+        function downloadPDF(event) {
             const element = document.querySelector('.resume-container');
-            const downloadBtn = event.target;
+            const downloadBtn = event.currentTarget;
             const originalText = downloadBtn.innerHTML;
             
             downloadBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating PDF...';
@@ -637,7 +736,7 @@ const generatePublicResumeHTML = (resume) => {
             
             const opt = {
                 margin: [0.5, 0.5, 0.5, 0.5],
-                filename: '${resume.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_resume.pdf',
+                filename: ${JSON.stringify(pdfFilename)},
                 image: { type: 'jpeg', quality: 0.98 },
                 html2canvas: { 
                     scale: 2,
@@ -681,9 +780,9 @@ const generatePublicResumeContent = (resume) => {
             </div>
             ${(resume.socialLinks.linkedin || resume.socialLinks.github || resume.socialLinks.portfolio) ? `
             <div class="contact-info mt-2">
-                ${resume.socialLinks.linkedin ? `<span><a href="${resume.socialLinks.linkedin}" target="_blank" class="text-white"><i class="fab fa-linkedin me-1"></i>LinkedIn</a></span>` : ''}
-                ${resume.socialLinks.github ? `<span><a href="${resume.socialLinks.github}" target="_blank" class="text-white"><i class="fab fa-github me-1"></i>GitHub</a></span>` : ''}
-                ${resume.socialLinks.portfolio ? `<span><a href="${resume.socialLinks.portfolio}" target="_blank" class="text-white"><i class="fas fa-globe me-1"></i>Portfolio</a></span>` : ''}
+                ${resume.socialLinks.linkedin ? `<span><a href="${resume.socialLinks.linkedin}" target="_blank" rel="noopener noreferrer" class="text-white"><i class="fab fa-linkedin me-1"></i>LinkedIn</a></span>` : ''}
+                ${resume.socialLinks.github ? `<span><a href="${resume.socialLinks.github}" target="_blank" rel="noopener noreferrer" class="text-white"><i class="fab fa-github me-1"></i>GitHub</a></span>` : ''}
+                ${resume.socialLinks.portfolio ? `<span><a href="${resume.socialLinks.portfolio}" target="_blank" rel="noopener noreferrer" class="text-white"><i class="fas fa-globe me-1"></i>Portfolio</a></span>` : ''}
             </div>
             ` : ''}
         </div>
@@ -755,7 +854,7 @@ const generatePublicResumeContent = (resume) => {
                                 <h4 class="item-title">${proj.title}</h4>
                                 ${proj.techStack ? `<p class="item-subtitle">Technologies: ${proj.techStack}</p>` : ''}
                             </div>
-                            ${proj.githubLink ? `<div><a href="${proj.githubLink}" target="_blank" class="text-decoration-none"><i class="fab fa-github me-1"></i>GitHub</a></div>` : ''}
+                            ${proj.githubLink ? `<div><a href="${proj.githubLink}" target="_blank" rel="noopener noreferrer" class="text-decoration-none"><i class="fab fa-github me-1"></i>GitHub</a></div>` : ''}
                         </div>
                         ${proj.description ? `<p class="text-muted">${proj.description}</p>` : ''}
                     </div>

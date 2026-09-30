@@ -1,4 +1,5 @@
 const OpenAI = require('openai');
+const AI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
 
 // Lazy-init OpenAI only when a request arrives (avoids crash on startup if key missing)
 const getOpenAI = () => {
@@ -65,7 +66,7 @@ Make sure the content is:
 
             const completion = await openai.chat.completions.create({
 
-                model: "gpt-3.5-turbo",
+                model: AI_MODEL,
                 messages: [
                     {
                         role: "system",

@@ -1,4 +1,5 @@
 const express = require('express');
+const requireAuth = require('../middleware/auth');
 const { 
     submitReview, 
     getResumeReviews, 
@@ -8,6 +9,8 @@ const {
 } = require('../controllers/reviewController');
 
 const router = express.Router();
+
+router.use(requireAuth);
 
 // POST /api/review/submit - Submit a new review
 router.post('/submit', submitReview);

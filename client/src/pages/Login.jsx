@@ -26,6 +26,7 @@ export default function Login() {
       if (data.success) {
         localStorage.setItem('token', data.data.token);
         localStorage.setItem('user', JSON.stringify(data.data.user));
+        window.dispatchEvent(new Event('authchange'));
         showToast('Logged in!', 'success');
         setTimeout(() => navigate('/resume-builder'), 800);
       } else {

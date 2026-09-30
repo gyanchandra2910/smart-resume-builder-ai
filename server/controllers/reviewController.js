@@ -6,31 +6,24 @@ const mongoose = require('mongoose');
 // Submit a new review
 const submitReview = async (req, res) => {
     try {
-        const { reviewerId, reviewedUserId, resumeId, score, feedback, flags } = req.body;
+        const reviewerId = req.userId;
+        const { reviewedUserId, resumeId, score, feedback, flags } = req.body;
 
         // Validation
-        if (!reviewerId || !reviewedUserId || !resumeId || !score || !feedback) {
+        if (!resumeId || !score || !feedback) {
             return res.status(400).json({
                 success: false,
-                message: 'All required fields must be provided: reviewerId, reviewedUserId, resumeId, score, feedback'
+                message: 'All required fields must be provided: resumeId, score, feedback'
             });
         }
 
         // Validate ObjectId formats
-        if (!mongoose.Types.ObjectId.isValid(reviewerId) || 
-            !mongoose.Types.ObjectId.isValid(reviewedUserId) || 
-            !mongoose.Types.ObjectId.isValid(resumeId)) {
+        if (!mongoose.Types.ObjectId.isValid(reviewerId) ||
+            !mongoose.Types.ObjectId.isValid(resumeId) ||
+            (reviewedUserId && !mongoose.Types.ObjectId.isValid(reviewedUserId))) {
             return res.status(400).json({
                 success: false,
                 message: 'Invalid ID format provided'
-            });
-        }
-
-        // Prevent self-review
-        if (reviewerId === reviewedUserId) {
-            return res.status(400).json({
-                success: false,
-                message: 'Cannot review your own resume'
             });
         }
 
@@ -56,6 +49,28 @@ const submitReview = async (req, res) => {
             }
         }
 
+        const resumeOwnerId = resume.userId?.toString();
+        if (!resumeOwnerId) {
+            return res.status(400).json({
+                success: false,
+                message: 'This legacy resume is not linked to a user and cannot be reviewed'
+            });
+        }
+
+        if (reviewedUserId && reviewedUserId !== resumeOwnerId) {
+            return res.status(400).json({
+                success: false,
+                message: 'Reviewed user does not own this resume'
+            });
+        }
+
+        if (reviewerId === resumeOwnerId) {
+            return res.status(400).json({
+                success: false,
+                message: 'Cannot review your own resume'
+            });
+        }
+
         // Check for duplicate review
         const existingReview = await Review.findOne({
             reviewerId: reviewerId,
@@ -72,7 +87,7 @@ const submitReview = async (req, res) => {
         // Create new review
         const review = new Review({
             reviewerId,
-            reviewedUserId,
+            reviewedUserId: resumeOwnerId,
             resumeId,
             score,
             feedback: feedback.trim(),
@@ -196,6 +211,13 @@ const getReviewerStats = async (req, res) => {
             });
         }
 
+        if (reviewerId !== req.userId) {
+            return res.status(403).json({
+                success: false,
+                message: 'You can only view your own reviewer statistics'
+            });
+        }
+
         const reviewerXP = await ReviewerXP.findOne({ reviewerId })
             .populate('reviewerId', 'name email');
 
@@ -262,6 +284,13 @@ const getReviewerReviews = async (req, res) => {
             return res.status(400).json({
                 success: false,
                 message: 'Invalid reviewer ID format'
+            });
+        }
+
+        if (reviewerId !== req.userId) {
+            return res.status(403).json({
+                success: false,
+                message: 'You can only view your own review history'
             });
         }
 

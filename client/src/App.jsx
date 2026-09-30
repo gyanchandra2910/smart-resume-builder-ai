@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Navigate, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import ResumeBuilder from './pages/ResumeBuilder';
@@ -9,6 +9,10 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import './index.css';
 
+const ProtectedRoute = ({ children }) => (
+  localStorage.getItem('token') ? children : <Navigate to="/login" replace />
+);
+
 function App() {
   return (
     <Router>
@@ -16,10 +20,10 @@ function App() {
         <Navbar />
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/resume-builder" element={<ResumeBuilder />} />
-          <Route path="/preview" element={<Preview />} />
-          <Route path="/ats-check" element={<AtsCheck />} />
-          <Route path="/interview-questions" element={<InterviewQuestions />} />
+          <Route path="/resume-builder" element={<ProtectedRoute><ResumeBuilder /></ProtectedRoute>} />
+          <Route path="/preview" element={<ProtectedRoute><Preview /></ProtectedRoute>} />
+          <Route path="/ats-check" element={<ProtectedRoute><AtsCheck /></ProtectedRoute>} />
+          <Route path="/interview-questions" element={<ProtectedRoute><InterviewQuestions /></ProtectedRoute>} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
         </Routes>

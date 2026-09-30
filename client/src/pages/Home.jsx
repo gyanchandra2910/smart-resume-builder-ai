@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Sparkles, BarChart2, Smartphone, Download, ArrowRight, Zap, Brain, Shield } from 'lucide-react';
+import { Sparkles, BarChart2, Download, ArrowRight, Zap, Brain, Shield } from 'lucide-react';
 
 const features = [
   {

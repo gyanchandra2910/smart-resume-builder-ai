@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { BarChart2, Upload, Loader2, AlertCircle, CheckCircle, Info, TrendingUp } from 'lucide-react';
+import { BarChart2, Loader2, AlertCircle, CheckCircle, Info, TrendingUp } from 'lucide-react';
 import Toast from '../components/Toast';
+import { authFetch } from '../utils/api';
 
 const ScoreRing = ({ score }) => {
   const r = 52;
@@ -52,7 +53,7 @@ export default function AtsCheck() {
         ? { resumeId, jobDescription: jobDesc }
         : { resumeText, jobDescription: jobDesc };
 
-      const res = await fetch('/api/resume/ats-check', {
+      const res = await authFetch('/api/resume/ats-check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),

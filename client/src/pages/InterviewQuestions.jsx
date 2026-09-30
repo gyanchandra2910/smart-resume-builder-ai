@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { MessageSquare, Loader2, ChevronDown, ChevronUp, Star, Tag } from 'lucide-react';
 import Toast from '../components/Toast';
+import { authFetch } from '../utils/api';
 
 const difficultyColor = {
   Easy: 'text-emerald-400 bg-emerald-900/30 border-emerald-500/30',
@@ -70,7 +71,7 @@ export default function InterviewQuestions() {
     setLoading(true);
     setQuestions([]);
     try {
-      const res = await fetch('/api/interview/questions', {
+      const res = await authFetch('/api/interview/questions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ resumeId, jobTitle }),

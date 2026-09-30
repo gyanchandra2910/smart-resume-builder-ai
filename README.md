@@ -18,10 +18,10 @@ A full-stack web application for building professional resumes with AI assistanc
 
 ## Tech Stack
 
-**Frontend:** React 18, Vite, Tailwind CSS v4, React Router v6  
+**Frontend:** React 19, Vite, Tailwind CSS v4, React Router v7
 **Backend:** Node.js, Express 5, Mongoose, jsonwebtoken, bcryptjs  
 **Database:** MongoDB  
-**AI:** OpenAI GPT-3.5-Turbo  
+**AI:** OpenAI GPT-4o mini (configurable with `OPENAI_MODEL`)
 
 ---
 
@@ -56,6 +56,7 @@ MONGODB_URI=mongodb://localhost:27017/smart-resume-builder
 PORT=5000
 JWT_SECRET=your_jwt_secret_here
 OPENAI_API_KEY=sk-...your-key...
+OPENAI_MODEL=gpt-4o-mini
 NODE_ENV=development
 ```
 
@@ -86,6 +87,9 @@ Open `http://localhost:5173` in your browser.
 | POST | `/api/resume/generateCoverLetter` | AI cover letter |
 | POST | `/api/resume/ats-check` | ATS score |
 | POST | `/api/interview/questions` | Interview questions |
+
+Except for signup, login, and public resume sharing, API endpoints require an
+`Authorization: Bearer <token>` header.
 
 ---
 

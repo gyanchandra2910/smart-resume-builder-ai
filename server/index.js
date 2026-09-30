@@ -92,7 +92,7 @@ if (process.env.NODE_ENV === 'production' && fs.existsSync(clientDistPath)) {
     app.use(express.static(clientDistPath));
     // Express 5 compatible SPA fallback
     app.use((req, res, next) => {
-        if (!req.path.startsWith('/api') && !req.path.startsWith('/resume')) {
+        if (!req.path.startsWith('/api')) {
             res.sendFile(path.join(clientDistPath, 'index.html'));
         } else {
             next();

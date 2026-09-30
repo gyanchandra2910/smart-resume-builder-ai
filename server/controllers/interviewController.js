@@ -119,7 +119,7 @@ const generateInterviewQuestions = async (req, res) => {
         }
 
         // Fetch resume from DB
-        const doc = await Resume.findById(resumeId);
+        const doc = await Resume.findOne({ _id: resumeId, userId: req.userId });
         if (!doc) {
             return res.status(404).json({ success: false, message: 'Resume not found. Build and save a resume first.' });
         }
@@ -136,7 +136,7 @@ const generateInterviewQuestions = async (req, res) => {
                 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
                 const completion = await openai.chat.completions.create({
-                    model: 'gpt-3.5-turbo',
+                    model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
                     messages: [
                         {
                             role: 'system',

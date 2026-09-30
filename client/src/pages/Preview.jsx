@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Download, Printer, Loader2, Sparkles, Loader, FileText, Copy, CheckCircle, ExternalLink } from 'lucide-react';
 import Toast from '../components/Toast';
+import { authFetch } from '../utils/api';
 
 // ── Templates: accent color only, layout stays LaTeX-identical ───────────────
 const TEMPLATES = [
@@ -23,7 +24,7 @@ export default function Preview() {
   const resumeId = searchParams.get('id') || localStorage.getItem('lastResumeId');
 
   const [resume, setResume]   = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(Boolean(resumeId));
   const [template, setTemplate] = useState(TEMPLATES[0]);
   const [toast, setToast]     = useState(null);
 
@@ -37,8 +38,8 @@ export default function Preview() {
   const showToast = (m, t = 'info') => setToast({ message: m, type: t });
 
   useEffect(() => {
-    if (!resumeId) { setLoading(false); return; }
-    fetch(`/api/resume/${resumeId}`)
+    if (!resumeId) return;
+    authFetch(`/api/resume/${resumeId}`)
       .then(r => r.json())
       .then(d => { if (d.success) setResume(d.data); })
       .catch(() => showToast('Failed to load resume', 'error'))
@@ -50,7 +51,7 @@ export default function Preview() {
     if (!clRole.trim()) { showToast('Enter target role first', 'warning'); return; }
     setClLoading(true);
     try {
-      const res = await fetch('/api/resume/generateCoverLetter', {
+      const res = await authFetch('/api/resume/generateCoverLetter', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -1,24 +1,29 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { FileText, Home, Eye, BarChart2, MessageSquare, LogIn, UserPlus, LogOut, User, Menu, X } from 'lucide-react';
 
 export default function Navbar() {
-  const [user, setUser] = useState(null);
+  const readStoredUser = () => {
+    try { return JSON.parse(localStorage.getItem('user')); }
+    catch { return null; }
+  };
+
+  const [user, setUser] = useState(readStoredUser);
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
   useEffect(() => {
-    const stored = localStorage.getItem('user');
-    if (stored) {
-      try { setUser(JSON.parse(stored)); } catch {}
-    }
-  }, [location]);
+    const syncAuth = () => setUser(readStoredUser());
+    window.addEventListener('authchange', syncAuth);
+    return () => window.removeEventListener('authchange', syncAuth);
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
+    setMenuOpen(false);
     navigate('/');
   };
 

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Plus, X, Sparkles, CheckCircle, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Toast from '../components/Toast';
+import { authFetch } from '../utils/api';
 
 // ── Input helpers ────────────────────────────────────────────────────────────
 const Field = ({ label, required, error, children }) => (
@@ -115,7 +116,7 @@ export default function ResumeBuilder() {
 
     setAiLoading(true);
     try {
-      const res = await fetch('/api/resume/generateSummary', {
+      const res = await authFetch('/api/resume/generateSummary', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role: form.roleAppliedFor, skills, objective: form.careerObjective }),
@@ -157,7 +158,7 @@ export default function ResumeBuilder() {
     };
 
     try {
-      const res = await fetch('/api/resume/input', {
+      const res = await authFetch('/api/resume/input', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

@@ -28,6 +28,7 @@ export default function Register() {
       if (data.success) {
         localStorage.setItem('token', data.data.token);
         localStorage.setItem('user', JSON.stringify(data.data.user));
+        window.dispatchEvent(new Event('authchange'));
         showToast('Account created! Redirecting...', 'success');
         setTimeout(() => navigate('/resume-builder'), 800);
       } else {
