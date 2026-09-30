@@ -11,17 +11,23 @@ A full-stack web application for building professional resumes with AI assistanc
 - ATS compatibility scoring against a job description
 - Cover letter generation for a specific role and company
 - Tailored interview question generation from your resume
-- JWT-based user authentication
+- JWT-based authentication with user-scoped resume access
 - Print-ready LaTeX-inspired resume layout with four color themes
+
+---
+
+## Demo
+
+[Watch the project demo on YouTube](https://youtu.be/i-GdJRHaLZQ?si=tqE67Dqg79f9HQy3)
 
 ---
 
 ## Tech Stack
 
-**Frontend:** React 19, Vite, Tailwind CSS v4, React Router v7
-**Backend:** Node.js, Express 5, Mongoose, jsonwebtoken, bcryptjs  
-**Database:** MongoDB  
-**AI:** OpenAI GPT-4o mini (configurable with `OPENAI_MODEL`)
+- **Frontend:** React 19, Vite 8, Tailwind CSS v4, React Router v7
+- **Backend:** Node.js, Express 5, Mongoose, JSON Web Token, bcryptjs
+- **Database:** MongoDB
+- **AI:** OpenAI GPT-4o mini (configurable with `OPENAI_MODEL`)
 
 ---
 
@@ -29,7 +35,7 @@ A full-stack web application for building professional resumes with AI assistanc
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 20.19+ or 22.12+
 - MongoDB running locally (`mongod`)
 - An OpenAI API key (optional — fallback responses work without it)
 
@@ -37,7 +43,7 @@ A full-stack web application for building professional resumes with AI assistanc
 
 ```bash
 # Clone
-git clone <repo-url>
+git clone https://github.com/gyanchandra2910/smart-resume-builder-ai.git
 cd smart-resume-builder-ai
 
 # Install backend dependencies
@@ -64,7 +70,7 @@ NODE_ENV=development
 
 ```bash
 # Terminal 1 — backend (from project root)
-node server/index.js
+npm start
 
 # Terminal 2 — frontend (from client/)
 cd client && npm run dev
@@ -76,20 +82,27 @@ Open `http://localhost:5173` in your browser.
 
 ## API Reference
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/auth/signup` | Register |
-| POST | `/api/auth/login` | Login |
-| POST | `/api/resume/input` | Save resume |
-| GET | `/api/resume/:id` | Get resume by ID |
-| DELETE | `/api/resume/:id` | Delete resume |
-| POST | `/api/resume/generateSummary` | AI summary |
-| POST | `/api/resume/generateCoverLetter` | AI cover letter |
-| POST | `/api/resume/ats-check` | ATS score |
-| POST | `/api/interview/questions` | Interview questions |
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/api/auth/signup` | No | Register and receive a JWT |
+| POST | `/api/auth/login` | No | Login and receive a JWT |
+| POST | `/api/resume/input` | Yes | Save a resume for the current user |
+| GET | `/api/resume` | Yes | List the current user's resumes |
+| GET | `/api/resume/:id` | Yes | Get an owned resume by ID |
+| DELETE | `/api/resume/:id` | Yes | Delete an owned resume |
+| GET | `/api/resume/public/:id` | No | Get a public resume page |
+| GET | `/resume/:id` | No | Open the shareable resume page |
+| POST | `/api/resume/generateSummary` | Yes | Generate an AI summary |
+| POST | `/api/resume/generateCoverLetter` | Yes | Generate a cover letter |
+| POST | `/api/resume/ats-check` | Yes | Calculate an ATS score |
+| POST | `/api/interview/questions` | Yes | Generate interview questions |
+| POST | `/api/review/submit` | Yes | Submit a peer review |
+| GET | `/api/review/resume/:resumeId` | Yes | Get reviews for a resume |
+| GET | `/api/review/reviewer/:reviewerId/stats` | Yes | Get reviewer statistics |
+| GET | `/api/review/reviewer/:reviewerId/reviews` | Yes | Get reviewer history |
+| GET | `/api/review/leaderboard` | Yes | Get the reviewer leaderboard |
 
-Except for signup, login, and public resume sharing, API endpoints require an
-`Authorization: Bearer <token>` header.
+Authenticated requests require an `Authorization: Bearer <token>` header.
 
 ---
 
@@ -99,16 +112,20 @@ Except for signup, login, and public resume sharing, API endpoints require an
 smart-resume-builder-ai/
 ├── server/
 │   ├── index.js
-│   ├── routes/
 │   ├── controllers/
-│   └── models/
+│   ├── middleware/
+│   ├── models/
+│   ├── routes/
+│   └── utils/
 ├── client/
 │   └── src/
+│       ├── components/
 │       ├── pages/
-│       └── components/
-├── report.tex       ← project report (LaTeX)
+│       └── utils/
+├── Report.pdf
+├── README.md
 ├── package.json
-└── .env
+└── .env              # create locally; not committed
 ```
 
 ---
